@@ -1,9 +1,12 @@
 # 模組
 import random
+import readchar
+import os
+import subprocess
+import sys
+import tempfile
 
-
-
-def russian_roulette(bullet_position:int, shoooting_position:int):
+def russian_roulette(bullet_position: int, shoooting_position: int):
     """
     俄羅斯轉盤
     Input: 子彈位置(int), 目前彈膛位置(int)
@@ -33,37 +36,36 @@ def draw_card():
         players[i].sort()
     return players
 
+
 def target_card():
     """
     抽取目標牌
     Input: 無
     Output: 目標牌(str)
     """
-    target = random.choice(["A", "Q", "K"])
-    return target
+    return random.choice(["A", "Q", "K"])
 
 
-def play_card(card_list:list, play_list:str):
+def play_card(card_list: list, play_list: str):
     """
     出牌
     Input: 玩家手牌(list), 出牌(list)
     Output: 剩餘手牌(list)
     """
-    for i in play_card:
+    for i in play_list:
         card_list.remove(play_list[i])
     return card_list
 
 
-def lier(last_play:list, target:str):
+def lier(last_play: list, target: str):
     """
     質疑
     Input: 上一位玩家出牌(list), 目標牌(str)
     Output: 是否說謊(bool|True:質疑成功/False:質疑失敗)
     """
     for i in last_play:
-        if last_play[i] != target or last_play[i] != "J":
+        if last_play[i] != target and last_play[i] != "J":
             return False
-            break
     return True
 
 
@@ -75,8 +77,8 @@ def remaining_player(p1, p2, p3, p4):
     """
     num = 0
     players = [p1, p2, p3, p4]
-    for i in players:
-        if players[i] == True:
+    for alive in players:
+        if alive:
             num += 1
     return num
 

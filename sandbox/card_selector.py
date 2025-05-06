@@ -1,36 +1,30 @@
-# 模組
+# menu_selector.py
 import readchar
 import os
 
-# 定義容器
 options = ['A', 'B', 'C', 'D', 'E']
 current_index = 0
 marked = set()
 mark_count = 0
 
-# 定義函式
 def render():
-    # 清除畫面
     if os.name == 'nt':
         os.system('cls')
     else:
         os.system('clear')
-    
-    display = []
 
-    # 顯示效果
+    display = []
     for i, option in enumerate(options):
         if i == current_index and i in marked:
-            display.append(f">[{option}]<")  # 當前游標 + 已標記
+            display.append(f">[{option}]<")
         elif i == current_index:
-            display.append(f"> {option} <")    # 只有游標
+            display.append(f"> {option} <")
         elif i in marked:
-            display.append(f" [{option}] ")    # 只有標記
+            display.append(f" [{option}] ")
         else:
             display.append(f"  {option}  ")
     print(" ".join(display))
     print("\n← a / d → 移動游標，space = 標記，q 離開")
-
 
 while True:
     render()
@@ -46,6 +40,7 @@ while True:
         else:
             if mark_count >= 3:
                 print("最多只能標記三個選項！")
+                input("按 Enter 繼續...")
                 continue
             else:
                 marked.add(current_index)
@@ -53,5 +48,5 @@ while True:
     elif key == 'q':
         break
 
-# 顯示結果
 print("\n你標記了：", [options[i] for i in marked])
+input("按 Enter 關閉視窗...")
