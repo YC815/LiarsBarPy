@@ -20,20 +20,33 @@ def russian_roulette(bullet_position: int, shoooting_position: int):
     return condition, shoooting_position
 
 
-def draw_card():
+def draw_cards(num_players=4):
     """
-    抽卡
-    Input: 無
-    Output: 四位玩家的手牌(list)
+    發牌
+    Input: num_players (int): 玩家數量(2~4人)
+    Output: List[List[str]]: 每位玩家的手牌（已排序）
     """
-    cards = ["A"] * 6 + ["Q"] * 6 + ["K"] * 6 + ["J"] * 2
-    random.shuffle(cards)
-    p1, p2, p3, p4 = [], [], [], []
-    players = [p1, p2, p3, p4]
-    for index, card in enumerate(cards):
-        players[index % 4].append(card)
-    for i in range(4):
-        players[i].sort()
+    if not isinstance(num_players, int) or not (2 <= num_players <= 4):
+        raise ValueError("玩家數量必須為 2 到 4 人")
+
+    # 建立牌堆並洗牌
+    deck = ["A"] * 6 + ["Q"] * 6 + ["K"] * 6 + ["J"] * 2
+    random.shuffle(deck)
+
+    # 確認牌夠抽（理論上最多4人 × 5張 = 20張）
+    total_needed = num_players * 5
+    if total_needed > len(deck):
+        raise ValueError("牌堆不足以發牌")
+
+    # 發牌（每人5張）
+    players = [[] for _ in range(num_players)]
+    for i in range(total_needed):
+        players[i % num_players].append(deck[i])
+
+    # 排序手牌
+    for hand in players:
+        hand.sort()
+
     return players
 
 

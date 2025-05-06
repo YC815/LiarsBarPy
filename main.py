@@ -22,8 +22,7 @@ target = game.target_card()
 # 玩家數量
 number_of_players = game.remaining_player(p1_lift, p2_lift, p3_lift, p4_lift)
 
+# 其他初始化
+play_list = []
 # 遊戲階段
-while number_of_players > 1:
-    # 隨機選擇出牌玩家
-    shooting_position = random.randint(1, number_of_players)
-    
+shooting_position = random.randint(1, number_of_players)

@@ -1,0 +1,68 @@
+{rules}
+{player_information}
+
+以下是當前對局的狀況:
+    當前輪數: {round_count}
+    整體出牌歷史: {play_history}
+
+以下是您自身狀況:
+    你的手牌: {self_hand}
+    對其他玩家的見解: {opinions_on_others}
+    你扣下板機的次數: {number_of_shots_fired}
+
+你需要完整輸出一份json，遵照以下的格式：
+## ✅ 統一格式說明（整合出牌與質疑階段）
+
+```json
+{
+  "action": "play" | "challenge",  
+  "played_cards": ["A", "A"],        
+  "behavior": "微笑著說：「我有兩張A。」語氣輕鬆但眼神閃爍。",
+  "play_reason": "我手上正好有兩張A，這回合想順勢丟出來，順便觀察對手反應。",
+  "was_challenged": true,
+  "challenge_reason": "他的語氣太過強硬，有種掩飾慌張的感覺，所以我決定開他。"
+}
+```
+
+---
+
+## 🧾 欄位語意說明
+
+| 欄位名稱               | 類型                       | 說明                                                  |
+| ------------------ | ------------------------ | --------------------------------------------------- |
+| `action`           | `"play"` 或 `"challenge"` | 當前行動的選擇：若是「出牌」則為 `play`，若是「質疑對手」則為 `challenge`。     |
+| `played_cards`     | list of str              | 實際打出的手牌內容。如果這回合是質疑行動，則為空陣列 `[]`。否則僅能從當前手牌選擇1～3張。    |
+| `behavior`         | str                      | 你打出手牌（或做出質疑行動）時的表現，如語氣、動作、表情等，不帶主語，用於讓其他玩家觀察推理。     |
+| `play_reason`      | str                      | 出牌與表現背後的策略理由（即便是騙人也可以說理由），如果是質疑行為，可填入這回合沒有出牌的原因或留空。 |
+| `was_challenged`   | bool                     | 你是否對上家的出牌行為提出質疑。                                    |
+| `challenge_reason` | str                      | 說明你為何選擇質疑或不質疑。即使選擇不質疑，也要說明原因（如觀察到對方語氣平穩、沒破綻等）。      |
+
+---
+
+## 🧪 兩種使用範例
+
+### 🂡 出牌回合（`action: "play"`）
+
+```json
+{
+  "action": "play",
+  "played_cards": ["Q", "Q"],
+  "behavior": "輕輕點頭，眼神直視對手：「兩張Q。」",
+  "play_reason": "我手上剛好有兩張Q，而且前一位玩家沒有質疑的跡象，趁這個節奏快速打出。",
+  "was_challenged": false,
+  "challenge_reason": "對手的語氣自然，沒有明顯破綻，因此我選擇先不質疑。"
+}
+```
+
+### 🤨 質疑回合（`action: "challenge"`）
+
+```json
+{
+  "action": "challenge",
+  "played_cards": [],
+  "behavior": "皺眉冷笑：「你剛才說有三張K？」",
+  "play_reason": "",
+  "was_challenged": true,
+  "challenge_reason": "上一輪他已經出過兩張K，不可能又拿到三張，我判斷他在說謊。"
+}
+```
