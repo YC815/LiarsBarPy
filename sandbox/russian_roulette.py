@@ -1,5 +1,6 @@
 import random
 
+
 def russian_roulette():
     """
     6 格彈膛（編號 1–6）
@@ -9,8 +10,8 @@ def russian_roulette():
     - 中彈時顯示子彈與起始位置，遊戲結束
     """
     # 隨機決定子彈與初始彈膛位置
-    bullet_position = random.randint(1, 6)
-    start_position = random.randint(1, 6)
+    bullet_position = random.randint(0, 5)
+    start_position = 0
     current_chamber = start_position
 
     print("=== 俄羅斯輪盤 ===")
@@ -29,7 +30,8 @@ def russian_roulette():
         else:
             print("空轉，安全！")
             # 旋轉到下一格（6→1）
-            current_chamber = current_chamber % 6 + 1
+            current_chamber = current_chamber % 5 + 1
+
 
 if __name__ == "__main__":
     russian_roulette()

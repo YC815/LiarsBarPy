@@ -19,7 +19,7 @@ def ai_selection(player_number: int, round_count: int, play_history: str, self_h
     def load_prompt(name):
         """
         載入提示詞
-        檔內調用
+        檔內調用用
         Input: 提示詞名稱(str)
         Output: 提示詞內容(str)
         """

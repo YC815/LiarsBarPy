@@ -1,23 +1,111 @@
 import os
 import json
+from string import Template
+from typing import Optional, List
 
 
 def init():
     """
     初始化記錄環境
     Input: 無
-    Output: 無
+    Output: 當前局數(int)
     """
 
-    # 讀取當前回合數
+    # 讀取當前局數
     with open("log/info.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    round_count = data["round_count"]  # 保留原始值
-    data["round_count"] += 1           # 修改記憶體中的值
+    game_count = data["game_count"]  # 保留原始值
+    data["game_count"] += 1           # 修改記憶體中的值
 
     # 寫入更新過的 JSON
     with open("log/info.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-    os.makedirs(f"log/round_{round_count}", exist_ok=True)
+    os.makedirs(f"log/round_{game_count}", exist_ok=True)
+    return game_count
+
+
+def record_round_info(game_count: int, round_count: int, players: list, rivew: dict, shooting_count: list, bullet_position: list, question: list, liar: list, target: str, p1_hand_card: list, p2_hand_card: list, p3_hand_card: list, p4_hand_card: list):
+    """
+    記錄回合資訊
+    Input: 局數(int), 回合數(int), 存活者(list), 回顧訊息(dict), 開槍次數(list), 子彈位置(list), 質疑次數(list), 被質疑次數(list), 目標牌(str), 玩家手牌(list)
+    Output: 無
+    """
+    with open("log/example/round_info.md", "r", encoding="utf-8") as f:
+        example = f.read()
+    record = Template(example).substitute({
+        "game_count": game_count,
+        "round_count": round_count,
+        "player_list": players,
+        "p1_to_p2": rivew["p1"]["p2"],
+        "p1_to_p3": rivew["p1"]["p3"],
+        "p1_to_p4": rivew["p1"]["p4"],
+        "p2_to_p1": rivew["p2"]["p1"],
+        "p2_to_p3": rivew["p2"]["p3"],
+        "p2_to_p4": rivew["p2"]["p4"],
+        "p3_to_p1": rivew["p3"]["p1"],
+        "p3_to_p2": rivew["p3"]["p2"],
+        "p3_to_p4": rivew["p3"]["p4"],
+        "p4_to_p1": rivew["p4"]["p1"],
+        "p4_to_p2": rivew["p4"]["p2"],
+        "p4_to_p3": rivew["p4"]["p3"],
+        "p1_shoot_count": shooting_count[0],
+        "p2_shoot_count": shooting_count[1],
+        "p3_shoot_count": shooting_count[2],
+        "p4_shoot_count": shooting_count[3],
+        "p1_bullet_pos": bullet_position[0],
+        "p2_bullet_pos": bullet_position[1],
+        "p3_bullet_pos": bullet_position[2],
+        "p4_bullet_pos": bullet_position[3],
+        "p1_question_count": question[0],
+        "p2_question_count": question[1],
+        "p3_question_count": question[2],
+        "p4_question_count": question[3],
+        "p1_liar_count": liar[0],
+        "p2_liar_count": liar[1],
+        "p3_liar_count": liar[2],
+        "p4_liar_count": liar[3],
+        "target": target,
+        "p1_hand": p1_hand_card,
+        "p1_shoot_count": shooting_count[0],
+        "p2_hand": p2_hand_card,
+        "p2_shoot_count": shooting_count[1],
+        "p3_hand": p3_hand_card,
+        "p3_shoot_count": shooting_count[2],
+        "p4_hand": p4_hand_card,
+        "p4_shoot_count": shooting_count[3]
+    })
+    with open(f"log/round_{game_count}/full_report.md", "w", encoding="utf-8") as f:
+        f.write(record)
+
+
+def record_game_play_step(game_count: int, player_number: int, is_play_card: bool, behavior: str, hand_cards: list, shoot_count: int, play_cards: Optional[List[str]] = None, play_reason: Optional[str] = None, challenge_reason: Optional[str] = None):
+    """
+    紀錄玩家行動
+    Input: 局數(int), 玩家編號(int), 是否出牌(bool), 行為(str), 玩家手牌(list), 開槍次數(int), 出牌(list), 出牌原因(str), 質疑原因(str)
+    Output: 無
+    """
+    if player_number == True:  # 出牌
+        with open("log/example/play_card_game_step.md", "r", encoding="utf-8") as f:
+            example = f.read()
+        record = Template(example).substitute({
+            "player_number": player_number,
+            "play_cards": play_cards,
+            "behavior": behavior,
+            "play_reason": play_reason,
+            "hand_cards": hand_cards,
+            "shoot_count": shoot_count
+        })
+    else:  # 質疑
+        with open("log/example/liar_game_step.md", "r", encoding="utf-8") as f:
+            example = f.read()
+        record = Template(example).substitute({
+            "player_number": player_number,
+            "behavior": behavior,
+            "challenge_reason": challenge_reason,
+            "hand_cards": hand_cards,
+            "shoot_count": shoot_count
+        })
+    with open(f"log/round_{game_count}/full_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
