@@ -1,10 +1,12 @@
 # 模組
+from collections import Counter
 import random
 import readchar
 import os
 import subprocess
 import sys
 import tempfile
+
 
 def russian_roulette(bullet_position: int, shoooting_position: int):
     """
@@ -82,16 +84,43 @@ def lier(last_play: list, target: str):
     return True
 
 
-def remaining_player(p1, p2, p3, p4):
+def remaining_player(life: list):
     """
     計算剩餘玩家
     Input: 四位玩家的狀態(bool|True:存活/False:死亡)
     Output: 剩餘玩家數量(int)
     """
     num = 0
-    players = [p1, p2, p3, p4]
+    players = life
     for alive in players:
         if alive:
             num += 1
     return num
 
+
+def choice_card(hand_cards: list):
+    """
+    選擇卡片
+    Input: 玩家手牌(list)
+    Output: 玩家剩餘手牌(list), 選擇的卡片(list)
+    """
+    print(f"請從 {hand_cards} 中選擇 1~3 張卡片（以空格分開）: ")
+    selection = input().split()
+
+    if not (1 <= len(selection) <= 3):
+        print("張數錯誤，請重新選擇。")
+        return choice_card(hand_cards)
+
+    hand_count = Counter(hand_cards)
+    select_count = Counter(selection)
+
+    for card, count in select_count.items():
+        if hand_count[card] < count:
+            print(f"你選了太多張「{card}」，請重新選擇。")
+            return choice_card(hand_cards)
+
+    # 移除選擇的牌
+    for card in selection:
+        hand_cards.remove(card)
+
+    return hand_cards, selection

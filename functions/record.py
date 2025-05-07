@@ -109,3 +109,51 @@ def record_game_play_step(game_count: int, player_number: int, is_play_card: boo
         })
     with open(f"log/round_{game_count}/full_record.md", "a", encoding="utf-8") as f:
         f.write(record)
+
+
+def system_record(game_count: int, liar_state: bool, player: int, bullet_state: bool):
+    """
+    系統判決質疑
+    Input: 局數(int), 質疑是否成功(bool), 玩家編號(int), 是否中彈(bool)
+    Output: 無
+    """
+    with open("log/example/system_record.md", "r", encoding="utf-8") as f:
+        example = f.read()
+    record = Template(example).substitute({
+        "liar_state": liar_state,
+        "player": player,
+        "bullet_state": bullet_state
+    })
+    with open(f"log/round_{game_count}/full_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
+
+
+def game_end_record(game_count: int, winner: str, player_rounds: list, player_challenge: list, player_challenged: list, player_shoot: list):
+    """
+    紀錄遊戲結束資訊
+    Input: 局數(int), 贏家(str), 玩家回合(list), 玩家質疑(list), 玩家被質疑(list), 玩家開槍(list)
+    Output: 無
+    """
+    with open("log/example/game_end.md", "r", encoding="utf-8") as f:
+        example = f.read()
+    record = Template(example).substitute({
+        "winner": winner,
+        "p1_rounds": player_rounds[0],
+        "p1_challenge": player_challenge[0],
+        "p1_challenged": player_challenged[0],
+        "p1_shoot": player_shoot[0],
+        "p2_rounds": player_rounds[1],
+        "p2_challenge": player_challenge[1],
+        "p2_challenged": player_challenged[1],
+        "p2_shoot": player_shoot[1],
+        "p3_rounds": player_rounds[2],
+        "p3_challenge": player_challenge[2],
+        "p3_challenged": player_challenged[2],
+        "p3_shoot": player_shoot[2],
+        "p4_rounds": player_rounds[3],
+        "p4_challenge": player_challenge[3],
+        "p4_challenged": player_challenged[3],
+        "p4_shoot": player_shoot[3]
+    })
+    with open(f"log/round_{game_count}/full_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
