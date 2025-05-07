@@ -45,7 +45,7 @@ def draw_cards(num_players=4):
 
     # 發牌
     for i in range(total_needed):
-        player_key = f"p{(i % num_players) + 1}"
+        player_key = f"p{(i % num_players)}"
         players[player_key].append(deck[i])
 
     # 排序
@@ -149,9 +149,9 @@ def question(play_card: list, target: str):
     """
     質疑
     Input: 上一位玩家出牌(list), 目標牌(str)
-    Output: 是否質疑成功(bool|True:質疑成功/False:質疑失敗)
+    Output: 是否質疑成功(bool | True: 質疑成功 / False: 質疑失敗)
     """
-    for i in play_card:
-        if play_card[i] != target and play_card[i] != "J":
-            return False
-    return True
+    for card in play_card:
+        if card != target and card != "J":
+            return True  # 有出假牌 → 質疑成功
+    return False  # 全部都是目標牌或J → 質疑失敗

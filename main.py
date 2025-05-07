@@ -5,7 +5,7 @@ import random
 import functions.game as game
 import functions.ai as ai
 import functions.record as record
-
+import functions.player as Player
 # 初始化玩家狀態
 life = [True, True, True, True]
 
@@ -29,7 +29,7 @@ chamber = [0, 0, 0, 0]
 
 
 # 初始化遊戲紀錄
-game_count = record.init()
+# game_count = record.init()
 
 # 初始化回合數
 round_count = 1
@@ -68,24 +68,34 @@ liar = [0, 0, 0, 0]
 # 決定誰開始
 player = random.randint(0, 3)
 while number_of_players > 1:  # 重複直到玩家剩一人
-    # 紀錄回合資訊
-    record.record_round_info(game_count, round_count,
-                             player_list, rivew, chamber, bullet, question, liar, target, cards["p0"], cards["p1"], cards["p2"], cards["p3"])
-    for i in range(game.remaining_player(life) - 1):
-        cards[f"p{i}"], play_card = game.choice_card(cards[f"p{i}"])
-        liar_or_not = game.liar_or_not()
-        if liar_or_not:
+    for i in range(game.remaining_player(life)):
+        print(f"目標牌為 {target}")
+        action = input(
+            f"玩家 {i}，請選擇行動（play 出牌 / challenge 質疑）: ").strip().lower()
+
+        if action == "play":
+            cards[f"p{i}"], play_card = game.choice_card(cards[f"p{i}"])
+            print(f"玩家 {i} 出了 {len(play_card)} 張牌（實際牌面保密）")
+            # 可選：紀錄 play_card 給記錄用（不顯示給其他玩家）
+
+        elif action == "challenge":
             question[i] += 1
-            if game.question(cards[f"p{i}"], target):
-                liar[i] += 1
+            last_player_index = Player.last_player(i)
+            if game.question(play_card, target):  # 檢查上一位玩家的出牌
+                liar[last_player_index] += 1
                 print(f"玩家 {i} 質疑成功！")
-                # 玩家質疑成功，將對方手牌移除
-                cards[f"p{i}"] = []
+                got_shoot, bullet[last_player_index] = game.russian_roulette(
+                    chamber[last_player_index], bullet[last_player_index])
+                if got_shoot:
+                    print(f"玩家 {last_player_index} 被擊中！")
+                    life[last_player_index] = False
             else:
                 print(f"玩家 {i} 質疑失敗！")
-                # 玩家質疑失敗，將對方手牌移除
-                cards[f"p{i}"] = []
+                got_shoot, bullet[i] = game.russian_roulette(
+                    chamber[i], bullet[i])
+                if got_shoot:
+                    print(f"玩家 {i} 被擊中！")
+                    life[i] = False
+
         else:
-            play_cards.append(play_card)
-            chamber[i] = (chamber[i] + 1) % 6
-            bullet[i] = (bullet[i] + 1) % 6
+            print("輸入錯誤，請輸入 'play' 或 'challenge'")
