@@ -36,7 +36,6 @@ def ai_selection(player_number: int, round_count: int, play_history: str, self_h
         played_cards: List[str]
         behavior: str
         play_reason: str
-        was_challenge: bool
         challenge_reason: str
 
     # 呼叫AI
