@@ -1,0 +1,19 @@
+### 出牌範例
+{
+  "action": "play",
+  "played_cards": ["Q", "Q"],
+  "behavior": "輕輕點頭，眼神直視對手：「兩張Q。」",
+  "play_reason": "我手上剛好有兩張Q，而且前一位玩家沒有質疑的跡象，趁這個節奏快速打出。",
+  "was_challenged": false,
+  "challenge_reason": "對手的語氣自然，沒有明顯破綻，因此我選擇先不質疑。"
+}
+
+### 質疑範例
+{
+  "action": "challenge",
+  "played_cards": [],
+  "behavior": "皺眉冷笑：「你剛才說有三張K？」",
+  "play_reason": "",
+  "was_challenged": true,
+  "challenge_reason": "上一輪他已經出過兩張K，不可能又拿到三張，我判斷他在說謊。"
+}

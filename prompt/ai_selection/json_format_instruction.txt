@@ -1,0 +1,10 @@
+請僅回傳純 JSON，不要附加任何解釋或多餘文字。格式如下：
+
+{
+  "action": "play" | "challenge",  
+  "played_cards": ["A", "A"],        
+  "behavior": "微笑著說：「我有兩張A。」語氣輕鬆但眼神閃爍。",
+  "play_reason": "我手上正好有兩張A，這回合想順勢丟出來，順便觀察對手反應。",
+  "was_challenged": true,
+  "challenge_reason": "他的語氣太過強硬，有種掩飾慌張的感覺，所以我決定開他。"
+}
