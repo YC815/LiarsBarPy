@@ -2,44 +2,47 @@
 ## 回合${round_count}
 - 存活者: ${players_list}
 - 回顧
+   - 玩家 0
+     - 對玩家 2: ${p0_to_p1}
+     - 對玩家 3: ${p0_to_p2}
+     - 對玩家 4: ${p0_to_p3}
    - 玩家 1
-     - 對玩家 2: ${p1_to_p2}
-     - 對玩家 3: ${p1_to_p3}
-     - 對玩家 4: ${p1_to_p4}
+     - 對玩家 1: ${p1_to_p0}
+     - 對玩家 3: ${p1_to_p2}
+     - 對玩家 4: ${p1_to_p3}
    - 玩家 2
-     - 對玩家 1: ${p2_to_p1}
-     - 對玩家 3: ${p2_to_p3}
-     - 對玩家 4: ${p2_to_p4}
-   - 玩家 3:
-     - 對玩家 1: ${p3_to_p1}
-     - 對玩家 2: ${p3_to_p2}
-     - 對玩家 4: ${p3_to_p4}
-   - 玩家 4:
-     - 對玩家 1: ${p4_to_p1}
-     - 對玩家 2: ${p4_to_p2}
-     - 對玩家 3: ${p4_to_p3}
+     - 對玩家 1: ${p2_to_p0}
+     - 對玩家 2: ${p2_to_p1}
+     - 對玩家 4: ${p2_to_p3}
+   - 玩家 3
+     - 對玩家 1: ${p3_to_p0}
+     - 對玩家 2: ${p3_to_p1}
+     - 對玩家 3: ${p3_to_p2}
  - 開槍次數
-   - 玩家 1: ${p1_shoot_count}
-   - 玩家 2: ${p2_shoot_count}
-   - 玩家 3: ${p3_shoot_count}
-   - 玩家 4: ${p4_shoot_count}
+   - 玩家 1: ${p0_shoot_count}
+   - 玩家 2: ${p1_shoot_count}
+   - 玩家 3: ${p2_shoot_count}
+   - 玩家 4: ${p3_shoot_count}
  - 子彈位置
-   - 玩家 1: ${p1_bullet_pos}
-   - 玩家 2: ${p2_bullet_pos}
-   - 玩家 3: ${p3_bullet_pos}
-   - 玩家 4: ${p4_bullet_pos}
+   - 玩家 1: ${p0_bullet_pos}
+   - 玩家 2: ${p1_bullet_pos}
+   - 玩家 3: ${p2_bullet_pos}
+   - 玩家 4: ${p3_bullet_pos}
  - 質疑次數
-   - 玩家 1: ${p1_question_count}
-   - 玩家 2: ${p2_question_count}
-   - 玩家 3: ${p3_question_count}
-   - 玩家 4: ${p4_question_count}
+   - 玩家 1: ${p0_question_count}
+   - 玩家 2: ${p1_question_count}
+   - 玩家 3: ${p2_question_count}
+   - 玩家 4: ${p3_question_count}
  - 被質疑次數
-   - 玩家 1: ${p1_liar_count}
-   - 玩家 2: ${p2_liar_count}
-   - 玩家 3: ${p3_liar_count}
-   - 玩家 4: ${p4_liar_count}
+   - 玩家 1: ${p0_liar_count}
+   - 玩家 2: ${p1_liar_count}
+   - 玩家 3: ${p2_liar_count}
+   - 玩家 4: ${p3_liar_count}
 ---
  - 目標牌: ${target}
+ - 玩家 0
+   - 手牌: ${p0_hand}
+   - 開槍次數: ${p0_shoot_count}
  - 玩家 1
    - 手牌: ${p1_hand}
    - 開槍次數: ${p1_shoot_count}
@@ -49,8 +52,5 @@
  - 玩家 3
    - 手牌: ${p3_hand}
    - 開槍次數: ${p3_shoot_count}
- - 玩家 4
-   - 手牌: ${p4_hand}
-   - 開槍次數: ${p4_shoot_count}
 
 ---

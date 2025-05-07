@@ -26,27 +26,30 @@ def draw_cards(num_players=4):
     """
     發牌
     Input: num_players (int): 玩家數量(2~4人)
-    Output: List[List[str]]: 每位玩家的手牌（已排序）
+    Output: Dict[str, List[str]]: 每位玩家的手牌（已排序），例如 {'p1': [...], 'p2': [...], ...}
     """
     if not isinstance(num_players, int) or not (2 <= num_players <= 4):
         raise ValueError("玩家數量必須為 2 到 4 人")
 
-    # 建立牌堆並洗牌
+    import random  # 確保 random 被 import
+
     deck = ["A"] * 6 + ["Q"] * 6 + ["K"] * 6 + ["J"] * 2
     random.shuffle(deck)
 
-    # 確認牌夠抽（理論上最多4人 × 5張 = 20張）
     total_needed = num_players * 5
     if total_needed > len(deck):
         raise ValueError("牌堆不足以發牌")
 
-    # 發牌（每人5張）
-    players = [[] for _ in range(num_players)]
-    for i in range(total_needed):
-        players[i % num_players].append(deck[i])
+    # 初始化玩家手牌（字典）
+    players = {f"p{i}": [] for i in range(num_players)}
 
-    # 排序手牌
-    for hand in players:
+    # 發牌
+    for i in range(total_needed):
+        player_key = f"p{(i % num_players) + 1}"
+        players[player_key].append(deck[i])
+
+    # 排序
+    for hand in players.values():
         hand.sort()
 
     return players
@@ -124,3 +127,31 @@ def choice_card(hand_cards: list):
         hand_cards.remove(card)
 
     return hand_cards, selection
+
+
+def liar_or_not():
+    """
+    判斷是否質疑
+    Input: 無
+    Output: 是否質疑(bool|True:質疑/False:不質疑)
+    """
+    while True:
+        choice = input("是否質疑？(y/n): ")
+        if choice == "y":
+            return True
+        elif choice == "n":
+            return False
+        else:
+            print("請輸入 y 或 n。")
+
+
+def question(play_card: list, target: str):
+    """
+    質疑
+    Input: 上一位玩家出牌(list), 目標牌(str)
+    Output: 是否質疑成功(bool|True:質疑成功/False:質疑失敗)
+    """
+    for i in play_card:
+        if play_card[i] != target and play_card[i] != "J":
+            return False
+    return True
