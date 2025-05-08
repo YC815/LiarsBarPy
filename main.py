@@ -7,7 +7,7 @@ import functions.record as record
 import functions.player as Player
 from functions.ai import ai_selection
 
-# 假設 player0 是人類，1~3 為 AI
+# 人類號碼紀錄
 HUMAN_IDX = 0
 
 # 輔助：將歷史紀錄格式化成字串，供 AI 讀取
@@ -15,16 +15,14 @@ format_history = getattr(record, 'format_history', lambda: "")
 
 
 def main():
-    # 初始化遊戲與記錄環境
-    game_count = record.init()
-
+    game_count = record.init()  # 初始化遊戲與記錄環境
     life = [True, True, True, True]
     question = [0, 0, 0, 0]
     liar = [0, 0, 0, 0]
     play_card = []
     last_player = None
-    round_count = 1
-    player = random.randint(0, 3)
+    round_count = 1  # 輪數
+    player = random.randint(0, 3)  # 第一家抽選
 
     bullet = [random.randint(0, 5) for _ in range(4)]
     chamber = [0, 0, 0, 0]
@@ -37,37 +35,82 @@ def main():
         "p3": {"p0": "還不了解此名玩家。", "p1": "還不了解此名玩家。", "p2": "還不了解此名玩家。"}
     }
 
-    target = game.target_card()
-    cards = game.draw_cards(4)
+    target = game.target_card()  # 目標牌抽選
+    cards = game.draw_cards(4)  # 玩家手牌
     first_round = True
 
     while game.remaining_player(life) > 1:
         # 記錄回合前資訊
-        players_alive = [f"p{i}" for i, alive in enumerate(life) if alive]
-        record.record_round_info(
+        players_alive = [f"p{i}" for i, alive in enumerate(
+            life) if alive]  # 玩家列表（文字化）
+        record.record_round_info(  # 該輪紀錄
             game_count, round_count, players_alive,
             review, shots_fired, bullet,
             question, liar, target,
             cards.get('p0', []), cards.get('p1', []), cards.get(
                 'p2', []), cards.get('p3', [])
         )
+        record.new_round_record(game_count, round_count, players_alive,
+                                shots_fired[0], shots_fired[1], shots_fired[2], shots_fired[3])
 
         print(f"\n========== 第 {round_count} 回合 ==========\n")
         gun_fired = False
-        turn_order = [i for i in range(
-            player, player + 4) if life[i % 4] for i in [i % 4]]
+        turn_order = [i % 4 for i in range(
+            player, player + 4) if life[i % 4]]  # 玩家順序
 
         for i in turn_order:
             print(f"目標牌為 {target}，玩家 {i} 的手牌為 {cards[f'p{i}']}")
 
-            # 若只剩你有牌，自動變質疑
+            # 若只剩一名玩家有牌，則強制出牌並自動被質疑
             non_empty = [j for j in range(4) if cards.get(f'p{j}', [])]
             if len(non_empty) == 1 and non_empty[0] == i:
-                print(f"只剩玩家 {i} 有牌，自動質疑。")
-                action = 'challenge'
+                print(f"只剩玩家 {i} 有牌，自動全出牌並被質疑。")
+                action = 'play'
                 behavior = ''
-                play_reason = ''
-                challenge_reason = '僅剩唯一手牌，改為質疑。'
+                play_reason = '只剩一人有牌，必須全數打出。'
+                challenge_reason = '自動質疑唯一有牌的玩家。'
+
+                # 自動全出牌
+                play_card = cards[f'p{i}']
+                cards[f'p{i}'] = []
+                last_player = i
+
+                record.record_game_play_step(
+                    game_count, i, True, behavior,
+                    cards[f'p{i}'], shots_fired[i],
+                    play_cards=play_card, play_reason=play_reason, challenge_reason=""
+                )
+
+                # 系統質疑
+                result = game.question(play_card, target)
+                if result:
+                    print(f"質疑成功，玩家 {i} 欺騙失敗，需開槍。")
+                    shooter = i
+                    got_shoot, new_bullet = game.russian_roulette(
+                        chamber[shooter], bullet[shooter]
+                    )
+                    bullet[shooter] = new_bullet
+                    shots_fired[shooter] += 1
+                    record.system_record(game_count, True, shooter, got_shoot)
+                    print(f"玩家 {shooter} 扣板機 ({shots_fired[shooter]}/6)")
+                    if got_shoot:
+                        life[shooter] = False
+                    player = shooter
+                else:
+                    print("質疑失敗，該玩家逃過一劫。進入下一回合。")
+                    record.system_record(game_count, False, i, False)
+                    player = i
+
+                # 記錄質疑行為（由虛擬角色 p99 執行）
+                record.record_game_play_step(
+                    game_count, 99, False, '系統自動質疑唯一出牌玩家。',
+                    [], 0,
+                    play_reason="", challenge_reason=challenge_reason
+                )
+
+                gun_fired = True
+                break
+
             else:
                 # 正常決策
                 if i == HUMAN_IDX:

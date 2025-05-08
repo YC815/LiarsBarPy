@@ -4,72 +4,134 @@ from typing import Literal, List
 from openai import OpenAI
 from string import Template
 import json
+from langchain import LLMChain, PromptTemplate
+from langchain.chat_models import ChatOpenAI
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
 # OpenAI.api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def ai_selection(player_number: int, round_count: int, play_history: str, self_hand: list, opinions_on_others: str, number_of_shots_fired: int):
-    """
-    AI遊戲選則
-    Input: 玩家設定編號(int), 回合數(int), 過去出牌紀錄(str), 自己手牌(list), 對其他玩家的看法(str), 開槍次數(int)
-    Output: AI選擇的行動(json)
-    """
+def ai_selection_langchain(
+    player_number: int,
+    round_count: int,
+    play_history: str,
+    self_hand: list,
+    opinions_on_others: str,
+    number_of_shots_fired: int,
+):
+    # 1. 定義 JSON 回傳的欄位與說明
+    response_schemas = [
+        ResponseSchema(name="action", description="play 或 challenge"),
+        ResponseSchema(name="played_cards", description="出牌清單，若質疑則空陣列"),
+        ResponseSchema(name="behavior", description="表現描述，不帶主語"),
+        ResponseSchema(name="play_reason", description="出牌策略理由；若質疑則空字串"),
+        ResponseSchema(name="challenge_reason", description="質疑或不質疑原因"),
+    ]
+    parser = StructuredOutputParser.from_response_schemas(response_schemas)
+    format_instructions = parser.get_format_instructions()
 
-    def load_prompt(name):
+    # 2. 建立 PromptTemplate
+    template = """\
+        遊戲規則與背景：  
+        {game_rules}
+
+        Round {round_count}，玩家編號：{player_number}  
+        過去出牌紀錄：{play_history}  
+        目前手牌：{self_hand}  
+        對其他玩家的看法：{opinions_on_others}  
+        已開槍次數：{number_of_shots_fired}
+
+        請依照以下格式回傳 JSON：  
+        {format_instructions}
         """
-        載入提示詞
-        檔內調用用
-        Input: 提示詞名稱(str)
-        Output: 提示詞內容(str)
-        """
-        with open(f"prompt/ai_selection/{name}.txt", "r", encoding="utf-8") as f:
-            return f.read()
-
-    # 載入玩家資訊
-    with open(f"prompt/player/{player_number}.txt", "r", encoding="utf-8") as f:
-        player = f.read()
-
-    # 結構化輸出
-    class OutputModel(BaseModel):
-        action: Literal["play", "challenge"]
-        played_cards: List[str]
-        behavior: str
-        play_reason: str
-        challenge_reason: str
-
-    # 呼叫AI
-    completion = client.beta.chat.completions.parse(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": load_prompt("system_intro")},
-            {"role": "system", "content": load_prompt(
-                "json_format_instruction")},
-            {"role": "system", "content": load_prompt("field_description")},
-            {"role": "system", "content": load_prompt("example_outputs")},
-            {"role": "user", "content": Template(load_prompt("game_context_template")).substitute({
-                "rules": load_prompt("rules"),
-                "player_information": player,
-                "round_count": round_count,
-                "play_history": play_history,
-                "self_hand": json.dumps(self_hand),
-                "opinions_on_others": opinions_on_others,
-                "number_of_shots_fired": number_of_shots_fired
-            })}
+    prompt = PromptTemplate(
+        input_variables=[
+            "game_rules",
+            "round_count",
+            "player_number",
+            "play_history",
+            "self_hand",
+            "opinions_on_others",
+            "number_of_shots_fired",
+            "format_instructions",
         ],
-        response_format=OutputModel
+        template=template,
     )
 
-    raw = completion.choices[0].message.content
-    # 如果是字串，就先 load 成 dict
-    if isinstance(raw, str):
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise RuntimeError(f"AI 回應 JSON 解析失敗：{e}\n原始回應：{raw}")
-    else:
-        data = raw
+    # 3. 建立 LLMChain
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.3)  # 依需求調整
+    chain = LLMChain(llm=llm, prompt=prompt)
 
-    # 再用 dict 初始化 Pydantic 模型
-    result = OutputModel(**data)
+    # 4. 執行並解析
+    response = chain.run({
+        "game_rules": open("prompt/rules.txt", encoding="utf-8").read(),
+        "round_count": round_count,
+        "player_number": player_number,
+        "play_history": play_history,
+        "self_hand": self_hand,
+        "opinions_on_others": opinions_on_others,
+        "number_of_shots_fired": number_of_shots_fired,
+        "format_instructions": format_instructions,
+    })
+    result = parser.parse(response)
     return result
+
+
+def rivew():
+    review = {
+        "p0": {"p1": "還不了解此名玩家。", "p2": "還不了解此名玩家。", "p3": "還不了解此名玩家。"},
+        "p1": {"p0": "還不了解此名玩家。", "p2": "還不了解此名玩家。", "p3": "還不了解此名玩家。"},
+        "p2": {"p0": "還不了解此名玩家。", "p1": "還不了解此名玩家。", "p3": "還不了解此名玩家。"},
+        "p3": {"p0": "還不了解此名玩家。", "p1": "還不了解此名玩家。", "p2": "還不了解此名玩家。"}
+    }
+    with open("prompt/rivew.txt", "r", encoding="utf-8") as f:
+        example = f.read()
+
+    with open("prompt/ai_selection/rules.txt", "r", encoding="utf-8") as f:
+        rules = f.read()
+
+    for i in range(4):
+        for j in range(4):
+            if i == j:
+                continue
+            template = """\
+                {rules}
+                {player_information}
+
+                這是上一輪遊戲的過程紀錄：
+                {log}
+
+                您作為玩家 {player_number}，
+                請**以一個完整的中文段落**（不要分行、不要列點）回答，分析玩家 {other_player_number} 的人格特質、出牌想法、優缺點等，讓自己在下一輪能拿到最有用的情報。
+                """
+            prompt = PromptTemplate(
+                input_variables=[
+                    "rules",
+                    "player_information",
+                    "log",
+                    "player_number",
+                    "other_player_number"
+                ],
+                template=template,
+            )
+
+            llm = ChatOpenAI(
+                model="gpt-4o",
+                temperature=0.3,
+                max_tokens=200,          # 最多 200 個 token，視需求調整
+                # 或者：max_new_tokens=150
+            )
+
+            chain = LLMChain(llm=llm, prompt=prompt)
+
+            response = chain.run({
+                "rules": open("prompt/rules.txt", encoding="utf-8").read(),
+                "player_information": open(f"prompt/player/{i}.txt", encoding="utf-8").read(),
+                "log": game_log,
+                "player_number": player_number,
+                "other_player_number": other_player_number,
+            })
+            print(response)
+
+            review[f"p{i}"][f"p{j}"] =

@@ -1,0 +1,9 @@
+${rules}
+${player_information}
+
+這是上一輪遊戲的過程紀錄
+${log}
+
+您作為玩家 ${player_number}
+請輸出您對玩家 ${otehr_player_number} 的見解分析，
+思考該名玩家的人格特質、出牌想法、優缺點等面向，以利於下一輪遊戲。
