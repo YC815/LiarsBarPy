@@ -90,6 +90,7 @@ def log_round_summary(game_count: int, round_count: int, players: list, rivew: d
         "p3_shoot_count": shooting_count[3]
     })
     with open(f"log/round_{game_count}/overview.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -122,6 +123,7 @@ def log_player_action(game_count: int, player_number: int, is_play_card: bool, b
             "shoot_count": shoot_count
         })
     with open(f"log/round_{game_count}/overview.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -139,6 +141,7 @@ def log_system_verdict(game_count: int, liar_state: bool, player: int, bullet_st
         "bullet_state": bullet_state
     })
     with open(f"log/round_{game_count}/overview.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -170,6 +173,7 @@ def log_game_end_summary(game_count: int, winner: str, player_rounds: list, play
         "p3_shoot": player_shoot[3]
     })
     with open(f"log/round_{game_count}/overview.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -190,6 +194,7 @@ def log_player_perspective(game_count: int, round_count: int, player: int, shoot
         "behavior": behavior
     })
     with open(f"log/round_{game_count}/player_summary.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -215,6 +220,7 @@ def log_next_round_context(game_count: int, sum_round_count: int, player_list: l
         "game_step": game_step
     })
     with open(f"log/round_{game_count}/next_round_context.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)
 
 
@@ -233,7 +239,8 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
             "behavior": behavior,
             "play_reason": play_reason,
             "challenge_reason": challenge_reason or "",
-            "shoot_count": shoot_count
+            "shoot_count": shoot_count,
+            "hand_cards": hand_cards
         })
     else:  # 質疑
         with open("log/example/in_game_challenge_step.md", "r", encoding="utf-8") as f:
@@ -242,7 +249,9 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
             "player_number": player_number,
             "behavior": behavior,
             "challenge_reason": challenge_reason,
-            "shoot_count": shoot_count
+            "shoot_count": shoot_count,
+            "hand_cards": hand_cards
         })
     with open(f"log/round_{game_count}/game_steps.md", "a", encoding="utf-8") as f:
+        f.write("\n")
         f.write(record)

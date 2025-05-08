@@ -5,7 +5,7 @@ from openai import OpenAI
 import functions.game as game
 import functions.record as record
 import functions.player as Player
-from functions.ai import ai_selection
+import functions.ai as ai
 
 # 人類號碼紀錄
 HUMAN_IDX = 0
@@ -43,15 +43,15 @@ def main():
         # 記錄回合前資訊
         players_alive = [f"p{i}" for i, alive in enumerate(
             life) if alive]  # 玩家列表（文字化）
-        record.record_round_info(  # 該輪紀錄
+        record.log_round_summary(  # 該輪紀錄
             game_count, round_count, players_alive,
             review, shots_fired, bullet,
             question, liar, target,
             cards.get('p0', []), cards.get('p1', []), cards.get(
                 'p2', []), cards.get('p3', [])
         )
-        record.new_round_record(game_count, round_count, players_alive,
-                                shots_fired[0], shots_fired[1], shots_fired[2], shots_fired[3])
+        record.log_next_round_context(game_count, round_count, players_alive,
+                                      shots_fired[0], shots_fired[1], shots_fired[2], shots_fired[3])
 
         print(f"\n========== 第 {round_count} 回合 ==========\n")
         gun_fired = False
@@ -75,7 +75,7 @@ def main():
                 cards[f'p{i}'] = []
                 last_player = i
 
-                record.record_game_play_step(
+                record.log_player_action(
                     game_count, i, True, behavior,
                     cards[f'p{i}'], shots_fired[i],
                     play_cards=play_card, play_reason=play_reason, challenge_reason=""
@@ -91,18 +91,19 @@ def main():
                     )
                     bullet[shooter] = new_bullet
                     shots_fired[shooter] += 1
-                    record.system_record(game_count, True, shooter, got_shoot)
+                    record.log_system_verdict(
+                        game_count, True, shooter, got_shoot)
                     print(f"玩家 {shooter} 扣板機 ({shots_fired[shooter]}/6)")
                     if got_shoot:
                         life[shooter] = False
                     player = shooter
                 else:
                     print("質疑失敗，該玩家逃過一劫。進入下一回合。")
-                    record.system_record(game_count, False, i, False)
+                    record.log_system_verdict(game_count, False, i, False)
                     player = i
 
                 # 記錄質疑行為（由虛擬角色 p99 執行）
-                record.record_game_play_step(
+                record.log_player_action(
                     game_count, 99, False, '系統自動質疑唯一出牌玩家。',
                     [], 0,
                     play_reason="", challenge_reason=challenge_reason
@@ -119,23 +120,56 @@ def main():
                     behavior = ''
                     play_reason = ''
                     challenge_reason = ''
+
                 else:
-                    decision = ai_selection(
+                    # 呼叫 AI，回傳一個 dict
+                    decision = ai.ai_selection_langchain(
                         player_number=i,
                         round_count=round_count,
                         play_history=format_history(),
                         self_hand=cards[f'p{i}'],
-                        opinions_on_others=json.dumps(review[f'p{i}']),
-                        number_of_shots_fired=shots_fired[i]
+                        opinions_on_others=review[f'p{i}'],
+                        number_of_shots_fired=shots_fired[i],
+                        target=target
                     )
-                    action = decision.action
-                    behavior = decision.behavior
-                    play_reason = getattr(decision, 'play_reason', '')
-                    challenge_reason = getattr(
-                        decision, 'challenge_reason', '')
+
+                    # 改用 dict.get() 取值
+                    action = decision.get('action')
+                    behavior = decision.get('behavior', '')
+                    play_reason = decision.get('play_reason', '')
+                    challenge_reason = decision.get('challenge_reason', '')
+                    raw = decision.get('played_cards', '[]')
+                    played = []
+
+                    # 1. 優先把像 [..] 的 literal 當 list 解析
+                    if isinstance(raw, str) and raw.strip().startswith('['):
+                        try:
+                            played = json.loads(raw)
+                        except json.JSONDecodeError:
+                            try:
+                                played = json.loads(raw.replace("'", '"'))
+                            except json.JSONDecodeError:
+                                played = []
+                    # 2. 否則，就當作單一字串來處理
+                    else:
+                        card = raw.strip("'\" ")
+                        if ',' in card:
+                            # 如果裡面有逗號，先切一次
+                            played = [x.strip()
+                                      for x in card.split(',') if x.strip()]
+                        elif card:
+                            played = [card]
+                        else:
+                            played = []
+
+                    # 3. 最後再保險一次：若結果還是 ['Q,Q,Q'] 這種，把它拆成 ['Q','Q','Q']
+                    if len(played) == 1 and isinstance(played[0], str) and ',' in played[0]:
+                        played = [x.strip()
+                                  for x in played[0].split(',') if x.strip()]
 
                     if action == 'play':
-                        played = decision.played_cards
+                        # 取出已打出的牌
+
                         for c in played:
                             cards[f'p{i}'].remove(c)
                         play_card = played
@@ -144,18 +178,27 @@ def main():
                     else:
                         print(f"玩家 {i} (AI) 決定質疑。")
 
-            # 出牌
+           # 出牌
             if action == 'play':
                 if i == HUMAN_IDX:
                     cards[f'p{i}'], play_card = game.choice_card(
                         cards[f'p{i}'])
                     last_player = i
                     print(f"玩家 {i} 出了 {len(play_card)} 張牌（保密）")
-                record.record_game_play_step(
+                record.log_player_action(
                     game_count, i, True, behavior,
                     cards[f'p{i}'], shots_fired[i],
                     play_cards=play_card, play_reason=play_reason, challenge_reason=challenge_reason
                 )
+                # 同步寫入 in-game action
+                record.log_in_game_action(
+                    game_count, i, True, behavior,
+                    cards[f'p{i}'], shots_fired[i],
+                    play_cards=play_card,
+                    play_reason=play_reason,
+                    challenge_reason=challenge_reason
+                )
+
                 continue
 
             # 質疑
@@ -178,7 +221,8 @@ def main():
                     )
                     bullet[shooter] = new_bullet
                     shots_fired[shooter] += 1
-                    record.system_record(game_count, True, shooter, got_shoot)
+                    record.log_system_verdict(
+                        game_count, True, shooter, got_shoot)
                     print(f"玩家 {shooter} 被質疑成功並開槍 ({shots_fired[shooter]}/6)")
                     if got_shoot:
                         life[shooter] = False
@@ -186,14 +230,18 @@ def main():
                 else:
                     # 質疑失敗：直接下一輪
                     print("質疑失敗，本回合結束，進入下一回合。")
-                    record.system_record(game_count, False, i, False)
+                    record.log_system_verdict(game_count, False, i, False)
                     # 無需射擊，不改 life
                     player = last_player or player
 
-                record.record_game_play_step(
+                record.log_system_verdict(
                     game_count, i, False, behavior,
                     cards[f'p{i}'], shots_fired[i],
                     play_reason=play_reason, challenge_reason=challenge_reason
+                )
+                # 同步寫入 in-game action（質疑）
+                record.log_in_game_action(
+                    game_count,  False, i, got_shoot
                 )
 
                 gun_fired = True
@@ -213,13 +261,14 @@ def main():
             target = game.target_card()
             cards = game.draw_cards(4)
             first_round = True
+            ai.review_players(game_count, review)
         else:
             print("本回合無人扣板機，繼續當前回合。")
             first_round = False
 
     # 遊戲結束記錄
     winner = [i for i, alive in enumerate(life) if alive][0]
-    record.game_end_record(
+    record.log_game_end_summary(
         game_count, f"p{winner}", [round_count]*4, question, liar, shots_fired
     )
     print(f"遊戲結束！勝利者為玩家 {winner}。")
