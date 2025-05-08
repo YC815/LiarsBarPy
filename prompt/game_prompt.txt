@@ -1,14 +1,14 @@
-{rules}
-{player_information}
+${rules}
+${player_information}
 
 以下是當前對局的狀況:
-    當前輪數: {round_count}
-    整體出牌歷史: {play_history}
+    當前輪數: ${round_count}
+    整體出牌歷史: ${play_history}
 
 以下是您自身狀況:
-    你的手牌: {self_hand}
-    對其他玩家的見解: {opinions_on_others}
-    你扣下板機的次數: {number_of_shots_fired}
+    你的手牌: ${self_hand}
+    對其他玩家的見解: ${opinions_on_others}
+    你扣下板機的次數: ${number_of_shots_fired}
 
 你需要完整輸出一份json，遵照以下的格式：
 ## ✅ 統一格式說明（整合出牌與質疑階段）

@@ -86,7 +86,7 @@ def record_game_play_step(game_count: int, player_number: int, is_play_card: boo
     Input: 局數(int), 玩家編號(int), 是否出牌(bool), 行為(str), 玩家手牌(list), 開槍次數(int), 出牌(list), 出牌原因(str), 質疑原因(str)
     Output: 無
     """
-    if player_number == True:  # 出牌
+    if is_play_card == True:  # 出牌
         with open("log/example/play_card_game_step.md", "r", encoding="utf-8") as f:
             example = f.read()
         record = Template(example).substitute({
@@ -94,6 +94,7 @@ def record_game_play_step(game_count: int, player_number: int, is_play_card: boo
             "play_cards": play_cards,
             "behavior": behavior,
             "play_reason": play_reason,
+            "challenge_reason": challenge_reason or "",
             "hand_cards": hand_cards,
             "shoot_count": shoot_count
         })

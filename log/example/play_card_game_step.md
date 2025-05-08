@@ -2,7 +2,7 @@
  - 選擇: 出牌
  - 出牌: ${play_cards}
  - 表現: ${behavior}
- - 出牌策略: ${paly_reason}
+ - 出牌策略: ${play_reason}
  - 不質疑原因: ${challenge_reason}
  - 剩餘手牌: ${hand_cards}
  - 開槍次數: ${shoot_count}

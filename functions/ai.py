@@ -59,4 +59,17 @@ def ai_selection(player_number: int, round_count: int, play_history: str, self_h
         ],
         response_format=OutputModel
     )
-    result = OutputModel(**completion.choices[0].message.content)
+
+    raw = completion.choices[0].message.content
+    # 如果是字串，就先 load 成 dict
+    if isinstance(raw, str):
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"AI 回應 JSON 解析失敗：{e}\n原始回應：{raw}")
+    else:
+        data = raw
+
+    # 再用 dict 初始化 Pydantic 模型
+    result = OutputModel(**data)
+    return result

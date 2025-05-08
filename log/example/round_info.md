@@ -1,6 +1,6 @@
 # 第${game_count}局
 ## 回合${round_count}
-- 存活者: ${players_list}
+- 存活者: ${player_list}
 - 回顧
    - 玩家 0
      - 對玩家 2: ${p0_to_p1}
