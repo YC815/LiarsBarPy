@@ -76,7 +76,7 @@ def record_round_info(game_count: int, round_count: int, players: list, rivew: d
         "p3_hand": p3_hand_card,
         "p3_shoot_count": shooting_count[3]
     })
-    with open(f"log/round_{game_count}/full_report.md", "w", encoding="utf-8") as f:
+    with open(f"log/round_{game_count}/full_record.md", "w", encoding="utf-8") as f:
         f.write(record)
 
 
@@ -157,4 +157,79 @@ def game_end_record(game_count: int, winner: str, player_rounds: list, player_ch
         "p3_shoot": player_shoot[3]
     })
     with open(f"log/round_{game_count}/full_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
+
+
+def in_game_record(game_count: int, round_count: int, player: int, shoot_count: int, play_card_count: int, behavior: str):
+    """
+    無上帝視角record
+    Input: 局數(int), 回合數(int), 玩家編號(int), 開槍次數(int), 出牌次數(int), 行為(str)
+    Output: 無
+    """
+    with open("log/example/in_game_record.md", "r", encoding="utf-8") as f:
+        example = f.read()
+    record = Template(example).substitute({
+        "game_count": game_count,
+        "round_count": round_count,
+        "player": player,
+        "shoot_count": shoot_count,
+        "play_card_count": play_card_count,
+        "behavior": behavior
+    })
+    with open(f"log/round_{game_count}/in_game_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
+
+
+def new_round_record(game_count: int, sum_round_count: int, player_list: list, p0_shoot_count: int, p1_shoot_count: int, p2_shoot_count: int, p3_shoot_count: int):
+    """
+    新回合前AI input
+    Input: 局數(int), 回合數(int), 玩家編號(list), 開槍次數(int)
+    Output: 無
+    """
+    with open("log/example/new_round_record.md", "r", encoding="utf-8") as f:
+        example = f.read()
+    with open(f"log/round_{game_count}/in_game_game_step.md", "r", encoding="utf-8") as f:
+        game_step = f.read()
+
+    record = Template(example).substitute({
+        "game_count": game_count,
+        "sum_round_count": sum_round_count,
+        "player_list": player_list,
+        "p0_shoot_count": p0_shoot_count,
+        "p1_shoot_count": p1_shoot_count,
+        "p2_shoot_count": p2_shoot_count,
+        "p3_shoot_count": p3_shoot_count,
+        "game_step": game_step
+    })
+    with open(f"log/round_{game_count}/new_round_record.md", "a", encoding="utf-8") as f:
+        f.write(record)
+
+
+def record_in_game_game_play_step(game_count: int, player_number: int, is_play_card: bool, behavior: str, hand_cards: list, shoot_count: int, play_cards: Optional[List[str]] = None, play_reason: Optional[str] = None, challenge_reason: Optional[str] = None):
+    """
+    紀錄玩家行動
+    Input: 局數(int), 玩家編號(int), 是否出牌(bool), 行為(str), 玩家手牌(list), 開槍次數(int), 出牌(list), 出牌原因(str), 質疑原因(str)
+    Output: 無
+    """
+    if is_play_card == True:  # 出牌
+        with open("log/example/in_game_play_card_game_step.md", "r", encoding="utf-8") as f:
+            example = f.read()
+        record = Template(example).substitute({
+            "player_number": player_number,
+            "play_cards": play_cards,
+            "behavior": behavior,
+            "play_reason": play_reason,
+            "challenge_reason": challenge_reason or "",
+            "shoot_count": shoot_count
+        })
+    else:  # 質疑
+        with open("log/example/in_game_liar_game_step.md", "r", encoding="utf-8") as f:
+            example = f.read()
+        record = Template(example).substitute({
+            "player_number": player_number,
+            "behavior": behavior,
+            "challenge_reason": challenge_reason,
+            "shoot_count": shoot_count
+        })
+    with open(f"log/round_{game_count}/in_game_game_step.md", "a", encoding="utf-8") as f:
         f.write(record)
