@@ -1,3 +1,7 @@
 .env
 .DS_Store
 book.txt
+/log/*
+!/log/example/
+!/log/example/**
+!/log/full_example.md
