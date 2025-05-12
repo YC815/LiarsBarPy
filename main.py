@@ -11,7 +11,6 @@ import functions.ai as ai
 HUMAN_IDX = 0
 
 # 輔助：將歷史紀錄格式化成字串，供 AI 讀取
-format_history = getattr(record, 'format_history', lambda: "")
 
 
 def main():
@@ -123,11 +122,13 @@ def main():
                 play_reason = ''
                 challenge_reason = ''
             else:
+                with open(f'log/round_{game_count}/game_steps.md', 'r', encoding='utf-8') as f:
+                    play_history = f.read()
                 # 呼叫 AI，回傳一個 dict
                 decision = ai.ai_selection_langchain(
                     player_number=i,
-                    round_count=round_count,
-                    play_history=format_history(),
+                    round_count=game_count,
+                    play_history=play_history,
                     self_hand=cards[f'p{i}'],
                     opinions_on_others=review[f'p{i}'],
                     number_of_shots_fired=shots_fired[i],

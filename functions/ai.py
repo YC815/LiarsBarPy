@@ -108,7 +108,70 @@ def review_players(
     debug: bool = False,          # <-- new parameter
 ):
     # 1. 預先讀檔
-    rules_txt = open("prompt/rules.txt", encoding="utf-8").read()
+    rules_txt = open("prompt/ai_selection/rules.txt", encoding="utf-8").read()
+    template_txt = open("prompt/review.txt", encoding="utf-8").read()
+    game_log = open(
+        f"log/round_{game_count}/game_steps.md", encoding="utf-8").read()
+    player_txts = [
+        open(f"prompt/player/{k}.txt", encoding="utf-8").read()
+        for k in range(4)
+    ]
+
+    # 2. 初始化 LangChain chain（只做一次）
+    prompt = PromptTemplate(
+        input_variables=[
+            "rules",
+            "player_information",
+            "log",
+            "review",
+            "player_number",
+            "other_player_number",
+        ],
+        template=template_txt,
+    )
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.3, max_tokens=200)
+    chain = LLMChain(llm=llm, prompt=prompt)
+
+    # 3. 迴圈呼叫
+    output = {f"p{i}": {f"p{j}": None for j in range(
+        4) if j != i} for i in range(4)}
+    for i in range(4):
+        for j in range(4):
+            if i == j:
+                continue
+
+            payload = {
+                "rules": rules_txt,
+                "player_information": player_txts[i],
+                "log": game_log,
+                "review": initial_review,
+                "player_number": i,
+                "other_player_number": j,
+            }
+
+            if DEBUG or debug:
+                print(f"\n>>> review_players INPUT for p{i} vs p{j} >>>")
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+            response = chain.run(payload)
+
+            if DEBUG or debug:
+                print(
+                    f"\n<<< review_players RAW RESPONSE for p{i} vs p{j} <<<")
+                print(response)
+
+            output[f"p{i}"][f"p{j}"] = response.strip()
+
+    return output
+
+
+def review_players(
+    game_count: int,
+    initial_review: dict,
+    debug: bool = False,          # <-- new parameter
+):
+    # 1. 預先讀檔
+    rules_txt = open("prompt/ai_selection/rules.txt", encoding="utf-8").read()
     template_txt = open("prompt/review.txt", encoding="utf-8").read()
     game_log = open(
         f"log/round_{game_count}/game_steps.md", encoding="utf-8").read()

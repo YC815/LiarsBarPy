@@ -15,8 +15,8 @@ def init():
     with open("log/game_info.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    game_count = data["game_count"]  # 保留原始值
     data["game_count"] += 1           # 修改記憶體中的值
+    game_count = data["game_count"]  # 保留原始值
 
     # 寫入更新過的 JSON
     with open("log/game_info.json", "w", encoding="utf-8") as f:
