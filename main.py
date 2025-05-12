@@ -186,6 +186,14 @@ def main():
                         cards[f'p{i}'])
                     last_player = i
                     print(f"玩家 {i} 出了 {len(play_card)} 張牌（保密）")
+                    
+                    # 讓玩家輸入表現、出牌策略和不質疑原因
+                    behavior = input("請輸入你的表現（直接按Enter跳過）: ")
+                    
+                    # 如果用戶直接按Enter，則設為空字串
+                    behavior = behavior if behavior.strip() else ""
+                
+                # 記錄玩家行動
                 record.log_player_action(
                     game_count, i, True, behavior,
                     cards[f'p{i}'], shots_fired[i],
@@ -247,17 +255,20 @@ def main():
             else:
                 raise RuntimeError(f"AI 回傳未知 action: {action}")
 
-        # 下一回合或延續
+        
         if gun_fired:
             round_count += 1
             play_card = []
             target = game.target_card()
             cards = game.draw_cards(4)
             first_round = True
-            review = ai.review_players(game_count, review)
+            # 大輪結束時進行 review
+            review = ai.review_players(game_count, review, is_end_of_round=True)
         else:
             print("本回合無人扣板機，繼續當前回合。")
             first_round = False
+            # 輪內整理時進行 review
+            review = ai.review_players(game_count, review, is_end_of_round=False)
 
     # 遊戲結束記錄
     winner = [i for i, alive in enumerate(life) if alive][0]

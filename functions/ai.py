@@ -86,6 +86,7 @@ Round {round_count}，玩家編號：{player_number}
 **請注意：不要超出手牌中卡片。**  
 請依照以下格式回傳 JSON：  
 {format_instructions}
+**請注意：「表現」將會給其他玩家看到，所以建議不要寫出自己出的牌或是自己的手牌等影響遊戲勝負的內容。**
 """
     # 若為玩家1，補充人類上家說明
     if player_number == 1:
@@ -195,13 +196,23 @@ Round {round_count}，玩家編號：{player_number}
 def review_players(
     game_count: int,
     initial_review: dict,
-    debug: bool = False,          # <-- new parameter
+    is_end_of_round: bool = False,  # 新增參數，判斷是否為大輪結束
+    debug: bool = False
 ):
     # 1. 預先讀檔
     rules_txt = open("prompt/ai_selection/rules.txt", encoding="utf-8").read()
     template_txt = open("prompt/review.txt", encoding="utf-8").read()
-    game_log = open(
-        f"log/round_{game_count}/ai_round_context.md", encoding="utf-8").read()
+    
+    # 根據是否為大輪結束選擇不同的記錄來源
+    if is_end_of_round:
+        # 如果是大輪結束，讀取完整的 game_steps.md
+        with open(f"log/round_{game_count}/game_steps.md", "r", encoding="utf-8") as f:
+            game_log = f.read()
+    else:
+        # 如果是輪內整理，讀取 ai_round_context.md
+        with open(f"log/round_{game_count}/ai_round_context.md", "r", encoding="utf-8") as f:
+            game_log = f.read()
+    
     player_txts = [
         open(f"prompt/player/{k}.txt", encoding="utf-8").read()
         for k in range(1, 4)  # 只讀取 AI 玩家 (1-3)
@@ -238,8 +249,8 @@ def review_players(
                 "review": initial_review,
                 "player_number": i,
                 "other_player_number": j,
+                "game_stepsmd": game_log  # 將 game_log 同時傳入 game_stepsmd 參數
             }
-
             if DEBUG or debug:
                 print(f"\n>>> review_players INPUT for p{i} vs p{j} >>>")
                 # 創建一個不包含 rules 和 player_information 的 payload 副本用於輸出
@@ -257,6 +268,8 @@ def review_players(
                 print(response)
 
             output[f"p{i}"][f"p{j}"] = response.strip()
+    
+    # 將結果寫入檔案
     with open(f"log/round_{game_count}/player_summary.md", "w", encoding="utf-8") as f:
         f.write(json.dumps(output, ensure_ascii=False, indent=2))
     return output
