@@ -5,4 +5,3 @@
  - 出牌策略: ${play_reason}
  - 不質疑原因: ${challenge_reason}
  - 開槍次數: ${shoot_count}
- - 手牌: ${hand_cards}

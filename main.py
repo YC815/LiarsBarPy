@@ -10,8 +10,6 @@ import functions.ai as ai
 # 人類號碼紀錄
 HUMAN_IDX = 0
 
-# 輔助：將歷史紀錄格式化成字串，供 AI 讀取
-
 
 def main():
     game_count = record.init()  # 初始化遊戲與記錄環境
@@ -48,6 +46,7 @@ def main():
             cards.get('p0', []), cards.get('p1', []), cards.get(
                 'p2', []), cards.get('p3', [])
         )
+
         record.log_next_round_context(
             game_count, round_count, players_alive,
             shots_fired[0], shots_fired[1], shots_fired[2], shots_fired[3]

@@ -249,8 +249,7 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
             "player_number": player_number,
             "behavior": behavior,
             "challenge_reason": challenge_reason,
-            "shoot_count": shoot_count,
-            "hand_cards": hand_cards
+            "shoot_count": shoot_count
         })
     with open(f"log/round_{game_count}/game_steps.md", "a", encoding="utf-8") as f:
         f.write("\n")
