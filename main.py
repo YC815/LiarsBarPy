@@ -53,6 +53,7 @@ def main():
         )
 
         print(f"\n========== 第 {round_count} 回合 ==========\n")
+        game.format_review(review)
         gun_fired = False
         turn_order = [i % 4 for i in range(player, player + 4) if life[i % 4]]
 
@@ -121,7 +122,7 @@ def main():
                 play_reason = ''
                 challenge_reason = ''
             else:
-                with open(f'log/round_{game_count}/game_steps.md', 'r', encoding='utf-8') as f:
+                with open(f'log/round_{game_count}/ai_round_context.md', 'r', encoding='utf-8') as f:
                     play_history = f.read()
                 # 呼叫 AI，回傳一個 dict
                 decision = ai.ai_selection_langchain(
@@ -253,7 +254,7 @@ def main():
             target = game.target_card()
             cards = game.draw_cards(4)
             first_round = True
-            ai.review_players(game_count, review)
+            review = ai.review_players(game_count, review)
         else:
             print("本回合無人扣板機，繼續當前回合。")
             first_round = False

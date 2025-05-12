@@ -35,6 +35,9 @@ def init():
 
     with open(f"log/round_{game_count}/game_steps.md", "w", encoding="utf-8") as f:
         f.write("")
+        
+    with open(f"log/round_{game_count}/ai_round_context.md", "w", encoding="utf-8") as f:
+        f.write("")
 
     return game_count
 
@@ -143,6 +146,12 @@ def log_system_verdict(game_count: int, liar_state: bool, player: int, bullet_st
     with open(f"log/round_{game_count}/overview.md", "a", encoding="utf-8") as f:
         f.write("\n")
         f.write(record)
+    with open(f"log/round_{game_count}/game_steps.md", "a", encoding="utf-8") as f:
+        f.write("\n")
+        f.write(record)
+    with open(f"log/round_{game_count}/ai_round_context.md", "a", encoding="utf-8") as f:
+        f.write("\n")
+        f.write(record)
 
 
 def log_game_end_summary(game_count: int, winner: str, player_rounds: list, player_challenge: list, player_challenged: list, player_shoot: list):
@@ -198,6 +207,9 @@ def log_player_perspective(game_count: int, round_count: int, player: int, shoot
         f.write(record)
 
 
+
+
+
 def log_next_round_context(game_count: int, sum_round_count: int, player_list: list, p0_shoot_count: int, p1_shoot_count: int, p2_shoot_count: int, p3_shoot_count: int):
     """
     新回合前AI input
@@ -230,6 +242,7 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
     Input: 局數(int), 玩家編號(int), 是否出牌(bool), 行為(str), 玩家手牌(list), 開槍次數(int), 出牌(list), 出牌原因(str), 質疑原因(str)
     Output: 無
     """
+    # 記錄到 game_steps.md
     if is_play_card == True:  # 出牌
         with open("log/example/in_game_play_step.md", "r", encoding="utf-8") as f:
             example = f.read()
@@ -237,10 +250,22 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
             "player_number": player_number,
             "play_cards": play_cards,
             "behavior": behavior,
-            "play_reason": play_reason,
+            "play_reason": play_reason or "",
             "challenge_reason": challenge_reason or "",
-            "shoot_count": shoot_count,
-            "hand_cards": hand_cards
+            "shoot_count": shoot_count
+        })
+        
+        # 同時記錄到 ai_round_context.md
+        with open("log/example/round_context_in_game_play_step.md", "r", encoding="utf-8") as f:
+            context_example = f.read()
+        # 計算出牌數量
+        card_count = len(play_cards) if play_cards else 0
+        context_record = Template(context_example).substitute({
+            "player_number": player_number,
+            "card_count": card_count,  # 出牌數量
+            "behavior": behavior,
+            "challenge_reason": challenge_reason or "",
+            "shoot_count": shoot_count
         })
     else:  # 質疑
         with open("log/example/in_game_challenge_step.md", "r", encoding="utf-8") as f:
@@ -248,9 +273,18 @@ def log_in_game_action(game_count: int, player_number: int, is_play_card: bool, 
         record = Template(example).substitute({
             "player_number": player_number,
             "behavior": behavior,
-            "challenge_reason": challenge_reason,
+            "challenge_reason": challenge_reason or "",
             "shoot_count": shoot_count
         })
+        # 質疑時直接使用相同的記錄
+        context_record = record
+    
+    # 寫入 game_steps.md
     with open(f"log/round_{game_count}/game_steps.md", "a", encoding="utf-8") as f:
         f.write("\n")
         f.write(record)
+    
+    # 寫入 ai_round_context.md
+    with open(f"log/round_{game_count}/ai_round_context.md", "a", encoding="utf-8") as f:
+        f.write("\n")
+        f.write(context_record)

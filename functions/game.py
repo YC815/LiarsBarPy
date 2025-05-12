@@ -155,3 +155,33 @@ def question(play_card: list, target: str):
         if card != target and card != "J":
             return True  # 有出假牌 → 質疑成功
     return False  # 全部都是目標牌或J → 質疑失敗
+
+
+def format_review(review_data):
+    """格式化顯示玩家互評資訊（列點式）
+    
+    Args:
+        review_data (dict): 包含玩家互評的字典
+    """
+    if not review_data:
+        print("目前沒有任何評分資料")
+        return
+    
+    print("\n=== 玩家互評資訊 ===\n")
+    
+    # 按照玩家ID排序以確保一致的顯示順序
+    for reviewer in sorted(review_data.keys()):
+        print(f"{reviewer} 對其他玩家的評價：")
+        
+        # 檢查是否有任何評價
+        has_review = any(review_data[reviewer].values())
+        
+        if not has_review:
+            print("  • 尚未對任何玩家進行評價\n")
+            continue
+            
+        for target, content in sorted(review_data[reviewer].items()):
+            print(f"  • 對 {target} 的評價：{content}")
+        print()  # 空一行分隔不同玩家的評價
+    
+    print("=" * 40 + "\n")
