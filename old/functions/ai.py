@@ -13,7 +13,7 @@ from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from collections import Counter
 import ast
 import random
-from models.player import Player  # 添加 Player 類別的導入
+from game.models.player import Player  # 添加 Player 類別的導入
 
 # toggle debug here
 DEBUG = False
