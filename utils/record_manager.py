@@ -30,8 +30,10 @@ class PlayerRecord:
 class RecordManager:
     """遊戲記錄管理器"""
 
-    def __init__(self, game_id: int):
+    def __init__(self, game_id: int, session_id: str):
         self.game_id = game_id
+        self.session_id = session_id
+        self.log_directory_path = f"log/game_{self.game_id}_{self.session_id}"
         self.current_round = 1
         self.round_records: List[RoundRecord] = []
         self.target_card = ""
@@ -42,21 +44,25 @@ class RecordManager:
 
     def _create_directories(self):
         """建立記錄目錄"""
-        os.makedirs(f"log/game_{self.game_id}", exist_ok=True)
+        os.makedirs(self.log_directory_path, exist_ok=True)
 
     def _init_record_files(self):
         """初始化記錄文件"""
         # 回合內記錄
-        with open(f"log/game_{self.game_id}/round_records.md", "w", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "round_records.md"), "w", encoding="utf-8") as f:
             f.write("# 回合內記錄\n\n")
 
         # 玩家視角記錄
-        with open(f"log/game_{self.game_id}/player_perspective.md", "w", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "player_perspective.md"), "w", encoding="utf-8") as f:
             f.write("# 玩家視角記錄\n\n")
 
         # 上帝視角記錄
-        with open(f"log/game_{self.game_id}/god_perspective.md", "w", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "god_perspective.md"), "w", encoding="utf-8") as f:
             f.write("# 上帝視角記錄\n\n")
+
+    def get_log_directory_path(self) -> str:
+        """返回當前遊戲記錄的完整目錄路徑"""
+        return self.log_directory_path
 
     def get_round_context(self, round_number: Optional[int] = None) -> str:
         """獲取指定回合的上下文記錄，用於 AI 決策參考
@@ -206,7 +212,7 @@ class RecordManager:
                 f"- 表現: {action['behavior']}"
             ])
 
-        with open(f"log/game_{self.game_id}/round_records.md", "a", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "round_records.md"), "a", encoding="utf-8") as f:
             f.write("\n".join(content))
 
     def _write_player_perspective(self):
@@ -233,7 +239,7 @@ class RecordManager:
                 f"- 策略: {action['strategy']}"
             ])
 
-        with open(f"log/game_{self.game_id}/player_perspective.md", "a", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "player_perspective.md"), "a", encoding="utf-8") as f:
             f.write("\n".join(content))
 
     def _write_god_perspective(self):
@@ -261,5 +267,5 @@ class RecordManager:
                 f"- 子彈位置: {action['bullet_pos'] or '未知'}"
             ])
 
-        with open(f"log/game_{self.game_id}/god_perspective.md", "a", encoding="utf-8") as f:
+        with open(os.path.join(self.log_directory_path, "god_perspective.md"), "a", encoding="utf-8") as f:
             f.write("\n".join(content))

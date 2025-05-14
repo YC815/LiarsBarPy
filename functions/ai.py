@@ -54,6 +54,7 @@ class GameState(BaseModel):
     play_history: List[Dict]
     player_insights: Dict
     last_played_cards: Optional[List[str]] = None
+    current_log_directory: Optional[str] = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -122,11 +123,23 @@ def ai_selection_langchain(game_state: GameState, player_id: int, round_count: i
 
     # 讀取當前回合記錄
     round_log = ""
+    log_file_path = ""
+    if game_state.current_log_directory:
+        log_file_path = os.path.join(
+            game_state.current_log_directory, "rounds.md")
+    else:
+        # 相容舊模式，如果沒有提供 current_log_directory
+        print("Warning: current_log_directory not found in game_state, falling back to old log path construction.")
+        log_file_path = f"log/game_{game_state.game_count}/rounds.md"
+
     try:
-        with open(f"log/game_{game_state.game_count}/rounds.md", "r", encoding="utf-8") as f:
+        # 偵錯輸出
+        print(f"DEBUG: Attempting to read log file from: {log_file_path}")
+        with open(log_file_path, "r", encoding="utf-8") as f:
             round_log = f.read()
     except FileNotFoundError:
         round_log = "尚未有回合記錄"
+        print(f"DEBUG: Log file not found at: {log_file_path}")  # 偵錯輸出
 
     # 準備輸入數據
     input_data = {

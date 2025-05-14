@@ -7,6 +7,7 @@ import json
 import os
 import random
 from enum import Enum
+from datetime import datetime
 
 
 class Game:
@@ -23,17 +24,21 @@ class Game:
         # 創建玩家
         self.players = self._create_players()
 
+        # 生成唯一的 session_id 給 RecordManager
+        self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")  # 年月日_時分秒_微秒
+
         # 初始化遊戲狀態
         self.current_idx = 0
         self.round_count = 0
-        self.game_count = 0
+        self.game_count = 0  # 會在 start() 中被 _get_next_game_count() 更新
         self.target_card = None
         self.last_play_cards = []
         self.last_player_idx = None
         self.play_history = []
 
-        # 初始化記錄管理器
-        self.record_manager = None
+        # 初始化記錄管理器 (會在 start() 中被賦值)
+        self.record_manager: Optional[RecordManager] = None
+        self.current_log_directory: Optional[str] = None
 
     def _create_players(self) -> List[Player]:
         """創建玩家列表"""
@@ -47,7 +52,12 @@ class Game:
         """開始新遊戲"""
         # 初始化記錄管理器
         self.game_count = self._get_next_game_count()
-        self.record_manager = RecordManager(self.game_count)
+        self.record_manager = RecordManager(
+            self.game_count, self.session_id)  # 傳遞 session_id
+        self.current_log_directory = self.record_manager.get_log_directory_path()
+        # 偵錯輸出
+        print(
+            f"DEBUG: Log directory for this session: {self.current_log_directory}")
 
         # 抽取目標牌
         self.target_card = self._draw_target_card()
@@ -246,17 +256,23 @@ class Game:
 
         deck = create_deck()
         alive_players = [p for p in self.players if p.alive]
+        print(f"DEBUG: _reset_game_state - 存活玩家數量: {len(alive_players)}")
         hands = shuffle_and_deal(deck, len(alive_players))
+        print(
+            f"DEBUG: _reset_game_state - shuffle_and_deal 返回的 hands: {hands}")
 
         for i, player in enumerate(alive_players):
             player.hand = hands[f"p{i}"]
             player.bullet_pos = random.randint(1, 6)
             player.gun_pos = 1
+            print(
+                f"DEBUG: _reset_game_state - 玩家 {player.id} (alive_players[{i}]) 被分配到手牌: {player.hand} (數量: {len(player.hand)})")
 
-            if i == 0 and self.human_player_index == 0:
+            if i == 0 and self.human_player_index == player.id:
                 print(f"你的新手牌: {player.hand} | 子彈位置: {player.bullet_pos}")
             elif self.debug:
-                print(f"p{i} 的新手牌: {player.hand} | 子彈位置: {player.bullet_pos}")
+                print(
+                    f"p{player.id} 的新手牌: {player.hand} | 子彈位置: {player.bullet_pos}")
 
         self.last_play_cards = []
         self.last_player_idx = None
@@ -278,8 +294,8 @@ class Game:
             "game_count": self.game_count,
             "round_count": self.round_count,
             "target_card": self.target_card,
-            "players": self.players,
-            "current_player": {
+            "players": self.players,  # 傳遞完整的 Player 物件列表
+            "current_player": {  # 提供當前玩家的簡化資訊
                 "id": current_player.id,
                 "hand": current_player.hand,
                 "bullet_pos": current_player.bullet_pos,
@@ -287,16 +303,18 @@ class Game:
                 "shots_fired": current_player.shots_fired
             },
             "last_play": last_play,
-            "last_player_idx": self.last_player_idx,
-            "last_play_cards": self.last_play_cards,
+            "last_player_idx": self.last_player_idx,  # 為了相容舊的 AI 邏輯，可考慮移除
+            "last_play_cards": self.last_play_cards,  # 為了相容舊的 AI 邏輯，可考慮移除
             "available_actions": self._get_available_actions(),
             "alive_players": [p.id for p in self.players if p.alive],
-            "players_stats": [{
+            "players_stats": [{  # 提供所有玩家的統計資訊，AI 可能會用到
                 "id": p.id,
                 "alive": p.alive,
                 "hand_count": len(p.hand),
                 "shots_fired": p.shots_fired
-            } for p in self.players]
+            } for p in self.players],
+            "record_manager": self.record_manager,  # AI 可能需要用 RecordManager 的方法
+            "current_log_directory": self.current_log_directory  # 新增：當前記錄目錄
         }
 
     def _get_available_actions(self) -> List[str]:

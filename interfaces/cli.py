@@ -14,6 +14,11 @@ class GameCLI:
         self.ai_decision_maker = AIDecisionMaker(strategy_type=ai_strategy)
         self.interactive_pause = interactive_pause
 
+    def clear_screen(self):
+        """清除終端機螢幕"""
+        # Windows 使用 'cls'，其他 (macOS, Linux) 使用 'clear'
+        os.system('cls' if os.name == 'nt' else 'clear')
+
     def display_game_status(self):
         """顯示當前遊戲狀態"""
         # 取得當前玩家
