@@ -1,24 +1,74 @@
+from dotenv import load_dotenv
 import os
-from pydantic import BaseModel
-from typing import Literal, List
-from openai import OpenAI
+from pydantic import BaseModel, Field, validator
+from typing import List, Optional, Dict, Literal
+from enum import Enum
 from string import Template
 import json
 from langchain.chains import LLMChain
-from langchain_core.prompts import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_openai import ChatOpenAI
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from collections import Counter
 import ast
+import random
+from game.models.player import Player  # 添加 Player 類別的導入
 
 # toggle debug here
-DEBUG = True
+DEBUG = False
 
-# OpenAI.api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 載入環境變數
+load_dotenv()
+
+# 檢查 API key
+if not os.getenv("OPENAI_API_KEY"):
+    raise ValueError("請在 .env 檔案中設定 OPENAI_API_KEY")
+
+# 定義提示模板
+PROMPT_TEMPLATE = """你是一個在說謊者酒吧遊戲中的 AI 玩家。
+你需要根據遊戲規則和當前情況做出決策。
+請記住：
+1. 不要暴露你的手牌
+2. 保持策略性思考
+3. 適時質疑其他玩家
+4. 注意遊戲節奏和風險管理"""
 
 
-def validate_played_cards(played_cards, self_hand):
+class ActionEnum(str, Enum):
+    play = 'play'
+    pass_turn = 'pass'
+
+
+class PlayerAction(BaseModel):
+    player_number: int
+    action: ActionEnum
+    card_count: int = Field(description="Number of cards played")
+
+
+class GameState(BaseModel):
+    """遊戲狀態模型"""
+    game_count: int
+    target_card: str
+    players: List[Player]
+    play_history: List[Dict]
+    player_insights: Dict
+    last_played_cards: Optional[List[str]] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+# Example usage of structured output
+# llm = ChatOpenAI(model="gpt-4o").with_structured_output(GameState)
+
+# Existing function
+
+
+def validate_played_cards(played_cards, self_hand, action="play"):
+    # 如果是質疑動作，不需要驗證出牌
+    if action == "challenge":
+        return True, ""
+
     # 1. 出牌數必須介於 1~3 張
     if not (1 <= len(played_cards) <= 3):
         return False, "出牌張數不在 1~3 張範圍內"
@@ -38,159 +88,172 @@ def validate_played_cards(played_cards, self_hand):
     return True, ""
 
 
+class AIResponse(BaseModel):
+    """AI 回應的結構化模型"""
+    action: Literal["play", "challenge"]
+    played_cards: List[str] = Field(default_factory=list)
+    behavior: str
+    play_reason: str
+    was_challenged: bool
+    challenge_reason: str
 
-def ai_selection_langchain(
-    player_number: int,
-    round_count: int,
-    play_history: str,
-    self_hand: list,
-    opinions_on_others: dict,
-    number_of_shots_fired: int,
-    target: str,
-    debug: bool = False,
-):
-    # 1. 定義 JSON 回傳欄位與說明
-    response_schemas = [
-        ResponseSchema(name="action", description="play 或 challenge"),
-        ResponseSchema(name="played_cards", description="出牌清單，若質疑則空陣列"),
-        ResponseSchema(name="behavior", description="表現描述，不帶主語"),
-        ResponseSchema(name="play_reason", description="出牌策略理由；若質疑則空字串"),
-        ResponseSchema(name="challenge_reason", description="質疑或不質疑原因"),
-    ]
-    parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = parser.get_format_instructions()
+    @validator('played_cards')
+    def validate_played_cards(cls, v, values):
+        if values.get('action') == 'play':
+            if not 1 <= len(v) <= 3:
+                raise ValueError('出牌數量必須在 1-3 張之間')
+            if not all(card in ['A', 'K', 'Q', 'J'] for card in v):
+                raise ValueError('只能出 A、K、Q、J 這四種牌')
+        return v
 
-    # 2. 建立 PromptTemplate（加入 previous_errors 並明確禁止超出手牌）
-    common_inputs = [
-        "game_rules", "player_info", "round_count", "player_number",
-        "play_history", "self_hand", "opinions_on_others",
-        "number_of_shots_fired", "target", "format_instructions",
-        "previous_errors", "game_stepsmd"
-    ]
-    common_template = """\
-遊戲規則與背景：  
-{game_rules}
-{player_info}
 
-Round {round_count}，玩家編號：{player_number}  
-過去出牌紀錄：{play_history}  
-目前手牌：{self_hand}  
-對其他玩家的看法：{opinions_on_others}  
-已開槍次數：{number_of_shots_fired}  
-目標牌: {target}  
-過去歷史紀錄: {game_stepsmd}
-
-# 錯誤回饋（若為第一次則為「無」）：  
-{previous_errors}
-
-**請注意：不要超出手牌中卡片。**  
-請依照以下格式回傳 JSON：  
-{format_instructions}
-**請注意：「表現」將會給其他玩家看到，所以建議不要寫出自己出的牌或是自己的手牌等影響遊戲勝負的內容。**
-"""
-    # 若為玩家1，補充人類上家說明
-    if player_number == 1:
-        common_template = common_template.replace(
-            "**請注意：不要超出手牌中卡片。**",
-            "**請注意：您是玩家1，上家是玩家0（人類）；不要超出手牌中卡片。**"
-        )
-
-    prompt = PromptTemplate(
-        input_variables=common_inputs,
-        template=common_template
-    )
-    chain = LLMChain(
-        llm=ChatOpenAI(
-            model="gpt-4o",  # 溫度設為 0 提升確定性
-            temperature=0.0,
-        ),
-        prompt=prompt
+def ai_selection_langchain(game_state: GameState, player_id: int, round_count: int) -> dict:
+    """使用 LangChain 進行 AI 決策"""
+    # 初始化 LLM
+    llm = ChatOpenAI(
+        model="gpt-4",
+        temperature=0.7,
+        api_key=os.getenv("OPENAI_API_KEY")
     )
 
-    # 3. 重試機制
-    max_retry = 5
-    attempts = 0
-    payload = {
-        "game_rules": open("prompt/ai_selection/rules.txt", encoding="utf-8").read(),
-        "player_info": open(f"prompt/player/{player_number}.txt", encoding="utf-8").read(),
+    # 讀取遊戲提示模板
+    with open("prompt/game_prompt.txt", "r", encoding="utf-8") as f:
+        prompt_template = f.read()
+
+    # 讀取當前回合記錄
+    round_log = ""
+    try:
+        with open(f"log/game_{game_state.game_count}/rounds.md", "r", encoding="utf-8") as f:
+            round_log = f.read()
+    except FileNotFoundError:
+        round_log = "尚未有回合記錄"
+
+    # 準備輸入數據
+    input_data = {
+        "game_state": f"""
+        目標牌: {game_state.target_card}
+        當前玩家: {player_id}
+        玩家手牌數量: {[len(p.hand) for p in game_state.players]}
+        存活玩家: {[i for i, p in enumerate(game_state.players) if p.alive]}
+        上一輪出牌: {game_state.last_played_cards if game_state.last_played_cards else '無'}
+        """,
+        "player_insights": f"""
+        你對其他玩家的了解：
+        {game_state.player_insights.get(player_id, '尚未有對其他玩家的了解')}
+        """,
+        "round_log": round_log,
         "round_count": round_count,
-        "player_number": player_number,
-        "play_history": play_history,
-        "self_hand": self_hand,
-        "opinions_on_others": opinions_on_others,
-        "number_of_shots_fired": number_of_shots_fired,
-        "target": target,
-        "format_instructions": format_instructions,
-        "game_stepsmd": open(f"log/round_{round_count}/ai_round_context.md", encoding="utf-8").read(),
-        "previous_errors": "無"
+        "play_history": str(game_state.play_history),
+        "self_hand": str(game_state.players[player_id].hand),
+        "opinions_on_others": str(game_state.player_insights.get(player_id, {})),
+        "number_of_shots_fired": game_state.players[player_id].shots_fired
     }
 
-    error_messages = []  # 儲存錯誤訊息
-    while attempts < max_retry:
-        # 準備發送給 LLM 的資料
-        llm_input = {
-            **payload,
-            "previous_errors": "\n".join([f"嘗試 {i+1}: {msg}" for i, msg in enumerate(error_messages)]) or "無"
-        }
-        if debug:
-            print(f"\n[Debug] 第 {attempts+1} 次嘗試，錯誤回饋：{llm_input['previous_errors']}")
+    # 設置輸出解析器
+    output_parser = StructuredOutputParser.from_response_schemas([
+        ResponseSchema(
+            name="action", description="選擇的動作：'play' 或 'challenge'"),
+        ResponseSchema(name="played_cards", description="要出的牌，如果是質疑則為空列表"),
+        ResponseSchema(name="behavior", description="出牌或質疑時的表現"),
+        ResponseSchema(name="play_reason", description="出牌或質疑的原因"),
+        ResponseSchema(name="was_challenged", description="是否質疑上一位玩家"),
+        ResponseSchema(name="challenge_reason", description="質疑或不質疑的原因")
+    ])
 
-        raw_response = chain.run(llm_input)
-        if debug:
-            print(f"[LLM 原始回應 - 第 {attempts+1} 次]\n{raw_response}\n{'-'*40}")
+    # 設置提示模板
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=prompt_template),
+        HumanMessage(content=json.dumps(
+            input_data, ensure_ascii=False, indent=2))
+    ])
 
-        # 嘗試解析
+    # 設置輸出格式
+    format_instructions = output_parser.get_format_instructions()
+
+    # 重試機制
+    max_retries = 5
+    error_messages = []
+
+    for attempt in range(max_retries):
         try:
-            result = parser.parse(raw_response)
+            # 如果有之前的錯誤，加入提示中
+            if error_messages:
+                error_context = "\n\n之前的錯誤：\n" + "\n".join(error_messages)
+                error_context += "\n請修正這些錯誤並重新做出決策。"
+                input_data["error_context"] = error_context
+
+            # 調用 LLM
+            response = llm.invoke(prompt.format(
+                format_instructions=format_instructions))
+
+            # 解析回應
+            result = output_parser.parse(response.content)
+
+            # 使用 Pydantic 模型驗證
+            validated_result = AIResponse(**result)
+
+            # 驗證出牌合法性
+            if validated_result.action == "play":
+                is_valid, msg = validate_played_cards(
+                    validated_result.played_cards,
+                    game_state.players[player_id].hand,
+                    validated_result.action
+                )
+                if not is_valid:
+                    error_messages.append(f"嘗試 {attempt + 1}: {msg}")
+                    continue
+
+            return validated_result.dict()
+
         except Exception as e:
-            error_messages.append(f"解析失敗: {e}")
-            attempts += 1
+            error_messages.append(f"嘗試 {attempt + 1}: {str(e)}")
+            if attempt == max_retries - 1:
+                raise ValueError(
+                    f"重試 {max_retries} 次後仍未得到有效回應。錯誤記錄：\n" +
+                    "\n".join(error_messages)
+                )
             continue
 
-        # 若為 challenge，直接回傳
-        if result.get("action") == "challenge":
-            return result
 
-        # 處理 played_cards 格式
-        played = result.get("played_cards", [])
-        if isinstance(played, str):
-            # 嘗試解析字串格式
-            import ast
-            import re
-            
-            # 嘗試解析 JSON 格式（例如 "[\"K\", \"A\"]"）
-            try:
-                played = ast.literal_eval(played)
-            except (ValueError, SyntaxError):
-                # 嘗試解析其他可能的格式（例如 "K, A, A" 或 "K A A"）
-                # 移除所有非字母和逗號的字符，然後分割
-                cleaned = re.sub(r'[^a-zA-Z,]', '', played.upper())
-                played = [card.strip() for card in cleaned.split(',') if card.strip()]
-                
-                # 如果還是空列表，嘗試按空格分割
-                if not played and ' ' in played:
-                    played = [card.strip() for card in played.split() if card.strip()]
-                    
-        # 確保 played 為 list 且每個元素都是字串
-        if not isinstance(played, list):
-            played = [played] if played else []
-            
-        # 確保所有卡片都是大寫字母
-        played = [str(card).strip().upper() for card in played if str(card).strip()]
-        result["played_cards"] = played
+def _make_basic_decision(player_number: int, hand: List[str], target: str) -> Dict:
+    """基本的 AI 決策邏輯，當 LLM 無法使用時的備用方案"""
+    # 計算手牌中目標牌和王牌的數量
+    target_count = hand.count(target)
+    joker_count = hand.count('J')
 
-        # 驗證合法性
-        is_valid, msg = validate_played_cards(played, self_hand)
-        if is_valid:
-            return result
+    # 決定是否要質疑
+    if random.random() < 0.3:  # 30% 機率質疑
+        return {
+            'action': 'challenge',
+            'played_cards': [],
+            'behavior': '懷疑地看著對方的出牌',
+            'play_reason': '',
+            'challenge_reason': '對方的出牌模式可疑'
+        }
 
-        # 驗證失敗，加入錯誤回饋並重試
-        error_messages.append(f"驗證失敗: {msg}")
-        attempts += 1
+    # 決定出牌數量（1-3張）
+    num_cards = min(random.randint(1, 3), len(hand))
+    cards_to_play = []
 
-    # 超過重試次數仍未合法
-    raise ValueError(f"重試 {max_retry} 次後仍未產出合法出牌：{error_messages}")
+    # 優先出目標牌和王牌
+    for card in hand:
+        if len(cards_to_play) >= num_cards:
+            break
+        if card in [target, 'J']:
+            cards_to_play.append(card)
 
+    # 如果還需要更多牌，從剩餘的牌中選擇
+    remaining_cards = [card for card in hand if card not in cards_to_play]
+    while len(cards_to_play) < num_cards and remaining_cards:
+        cards_to_play.append(remaining_cards.pop(0))
+
+    return {
+        'action': 'play',
+        'played_cards': cards_to_play,
+        'behavior': '謹慎地出牌',
+        'play_reason': '根據手牌狀況做出合理決策',
+        'challenge_reason': ''
+    }
 
 
 def review_players(
@@ -202,7 +265,7 @@ def review_players(
     # 1. 預先讀檔
     rules_txt = open("prompt/ai_selection/rules.txt", encoding="utf-8").read()
     template_txt = open("prompt/review.txt", encoding="utf-8").read()
-    
+
     # 根據是否為大輪結束選擇不同的記錄來源
     if is_end_of_round:
         # 如果是大輪結束，讀取完整的 game_steps.md
@@ -212,7 +275,7 @@ def review_players(
         # 如果是輪內整理，讀取 ai_round_context.md
         with open(f"log/round_{game_count}/ai_round_context.md", "r", encoding="utf-8") as f:
             game_log = f.read()
-    
+
     player_txts = [
         open(f"prompt/player/{k}.txt", encoding="utf-8").read()
         for k in range(1, 4)  # 只讀取 AI 玩家 (1-3)
@@ -244,7 +307,8 @@ def review_players(
 
             payload = {
                 "rules": rules_txt,
-                "player_information": player_txts[i-1],  # 調整索引，因為 player_txts 是從 0 開始的
+                # 調整索引，因為 player_txts 是從 0 開始的
+                "player_information": player_txts[i-1],
                 "log": game_log,
                 "review": initial_review,
                 "player_number": i,
@@ -268,7 +332,7 @@ def review_players(
                 print(response)
 
             output[f"p{i}"][f"p{j}"] = response.strip()
-    
+
     # 將結果寫入檔案
     with open(f"log/round_{game_count}/player_summary.md", "w", encoding="utf-8") as f:
         f.write(json.dumps(output, ensure_ascii=False, indent=2))
