@@ -265,8 +265,9 @@ class Game:
             print(f"已開槍次數：{current['shots_fired']}")
 
             if status["last_play"]:
-                print(
-                    f"\n上家 (玩家 {status['last_play']['player_id']}) 出牌：{status['last_play']['cards']}")
+                # print(
+                # f"\n上家 (玩家 {status['last_play']['player_id']}) 出牌：{status['last_play']['cards']}")
+                pass
 
             print("\n可選擇的動作：")
             for i, action in enumerate(status["available_actions"], 1):

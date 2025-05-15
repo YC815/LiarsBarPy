@@ -134,7 +134,7 @@ def ai_selection_langchain(game_state: GameState, player_id: int, round_count: i
 
     try:
         # 偵錯輸出
-        print(f"DEBUG: Attempting to read log file from: {log_file_path}")
+        # print(f"DEBUG: Attempting to read log file from: {log_file_path}")
         with open(log_file_path, "r", encoding="utf-8") as f:
             round_log = f.read()
     except FileNotFoundError:

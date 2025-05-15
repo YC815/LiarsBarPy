@@ -112,6 +112,7 @@ class LLMManager:
 
         # 取得格式說明
         format_instructions = output_parser.get_format_instructions()
+        format_instructions += "\n注意：所有布林值欄位（如 was_challenged）必須嚴格填寫 true 或 false，不能填寫「是」「否」等字串。"
 
         # 定義系統消息，插入格式說明
         system_message = f'''## 🎮 遊戲設定：「Liar's Bar」生死賭局

@@ -60,11 +60,11 @@ class AIDecisionMaker:
             # 使用 LLM 策略
             decision = self.llm_manager.generate_decision(
                 game_state, player_id)
-            # 顯示 AI 的行為和原因
-            print(f"\nAI {decision['behavior']}")
-            print(f"原因: {decision['play_reason']}")
-            if decision['was_challenged']:
-                print(f"質疑原因: {decision['challenge_reason']}")
+            # 只在解析失敗時顯示錯誤
+            if "解析失敗" in decision.get("play_reason", ""):
+                print(
+                    f"[AI決策解析失敗] play_reason: {decision.get('play_reason', '')}")
+                print(f"[AI決策解析失敗] 原始內容: {decision}")
         else:
             # 使用其他策略
             if player_obj is None:

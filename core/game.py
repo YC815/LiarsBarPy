@@ -56,8 +56,8 @@ class Game:
             self.game_count, self.session_id)  # 傳遞 session_id
         self.current_log_directory = self.record_manager.get_log_directory_path()
         # 偵錯輸出
-        print(
-            f"DEBUG: Log directory for this session: {self.current_log_directory}")
+        # print(
+        #     f"DEBUG: Log directory for this session: {self.current_log_directory}")
 
         # 抽取目標牌
         self.target_card = self._draw_target_card()
@@ -98,7 +98,7 @@ class Game:
 
     def next(self, player_decision: Dict):
         """處理當前玩家的決策，並更新遊戲狀態"""
-        print("DEBUG player_decision:", player_decision)
+        # print("DEBUG player_decision:", player_decision)
         current = self.players[self.current_idx]
         action = player_decision.get('action')
         played_cards = player_decision.get('played_cards', [])
@@ -106,7 +106,7 @@ class Game:
         strategy = player_decision.get('play_reason', '')
 
         if action == 'play':
-            print("DEBUG played_cards before validate:", played_cards)
+            # print("DEBUG played_cards before validate:", played_cards)
             valid, msg = validate_played_cards(played_cards, current.hand)
             if not valid:
                 print(f"出牌無效: {msg}")
@@ -258,15 +258,15 @@ class Game:
         alive_players = [p for p in self.players if p.alive]
         print(f"DEBUG: _reset_game_state - 存活玩家數量: {len(alive_players)}")
         hands = shuffle_and_deal(deck, len(alive_players))
-        print(
-            f"DEBUG: _reset_game_state - shuffle_and_deal 返回的 hands: {hands}")
+        # print(
+        # f"DEBUG: _reset_game_state - shuffle_and_deal 返回的 hands: {hands}")
 
         for i, player in enumerate(alive_players):
             player.hand = hands[f"p{i}"]
             player.bullet_pos = random.randint(1, 6)
             player.gun_pos = 1
-            print(
-                f"DEBUG: _reset_game_state - 玩家 {player.id} (alive_players[{i}]) 被分配到手牌: {player.hand} (數量: {len(player.hand)})")
+            # print(
+            #     f"DEBUG: _reset_game_state - 玩家 {player.id} (alive_players[{i}]) 被分配到手牌: {player.hand} (數量: {len(player.hand)})")
 
             if i == 0 and self.human_player_index == player.id:
                 print(f"你的新手牌: {player.hand} | 子彈位置: {player.bullet_pos}")
