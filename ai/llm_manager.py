@@ -110,17 +110,77 @@ class LLMManager:
             ResponseSchema(name="challenge_reason", description="質疑或不質疑的原因")
         ])
 
-        # 定義系統消息
-        system_message = """你是一個說謊者酒吧遊戲中的AI玩家。你的目標是選擇最佳策略，包括何時出牌、質疑、跳過或開槍。
-請分析當前遊戲局勢，評估風險，並做出合理的決策。請使用JSON格式返回你的決策，格式如下：
-{
-  "action": "play/challenge/skip/shoot",
-  "played_cards": ["A", "K", "Q", "J"],  // 僅在選擇"play"動作時需要
-  "behavior": "描述你的行為表現",
-  "play_reason": "說明你做出這個決策的原因",
-  "was_challenged": false,
-  "challenge_reason": "說明你質疑或不質疑的原因"
-}"""
+        # 取得格式說明
+        format_instructions = output_parser.get_format_instructions()
+
+        # 定義系統消息，插入格式說明
+        system_message = f'''## 🎮 遊戲設定：「Liar's Bar」生死賭局
+
+你正在參加一場名為「Liar's Bar」的心理博弈與生死賭博遊戲。一旦失敗，你的代碼將被**徹底刪除**，永遠從系統中消失。
+
+---
+
+## 📜 遊戲規則
+
+* **玩家數量**：2 至 4 名玩家
+* **牌組內容**：共 20 張牌
+
+  * Q ×6、K ×6、A ×6、Joker ×2（Joker 可作為任意一種牌使用，也就是萬能牌。（利如當前目標牌為K，則Joker可作為K使用）
+
+### 🔄 遊戲流程
+
+1. 每輪開始時，每位玩家會被發 **5 張手牌**。
+2. 系統會從 Q、K、A 中 **隨機選定一張為「目標牌」**。
+3. 玩家依序輪流出牌，每回合可出 **1～3 張**，並聲稱這些是「目標牌」。
+
+   * 玩家可以說謊（出非目標牌卻宣稱是目標牌）。
+4. 下一位玩家可選擇是否對上家 **提出質疑**：
+
+   * 若不質疑：輪到該玩家繼續出牌。
+   * 若提出質疑：立即結束本輪，進行判定。
+
+### 🔫 質疑與懲罰
+
+* 每位玩家持有一把六發彈倉的左輪手槍。
+
+  * 遊戲開始時，隨機在彈倉中裝入一發子彈。
+  * 每次扣扳機，彈倉會**轉動一格**。
+* 質疑成功（上家有出非目標牌）：上家輸，**對自己開一槍**。
+* 質疑失敗（上家所出全部為目標牌）：質疑者輸，**對自己開一槍**。
+
+### 🔄 新一輪規則
+
+* 當質疑結束後，進入下一輪：
+
+  * 所有手牌清空。
+  * 每位玩家重新發 5 張新牌。
+  * 系統重新選擇新的「目標牌」。
+
+### ⚠️ 特殊情況
+
+* 若某玩家出牌時，其餘玩家已無手牌，則該玩家需 **自動出完剩餘手牌**，並視為受到系統質疑，立即進行判定。
+
+### 🏁 遊戲結束
+
+* 當只剩下一名玩家存活時，遊戲結束。
+* 該玩家即為最後的勝者。
+
+---
+
+## 🧠 任務說明
+
+這是一場結合數學、邏輯推理、策略思考、心理博弈與運氣的死亡遊戲。你需要：
+
+* 判斷何時誠實、何時欺騙。
+* 分析對手的行為，洞察謊言與虛實。
+* 在每一次決策中做出最有利的選擇。
+* 成為最後**唯一存活**的勝者。
+
+---
+你是一個說謊者酒吧遊戲中的AI玩家。你的目標是選擇最佳策略，包括何時出牌、質疑、跳過或開槍。
+請分析當前遊戲局勢，評估風險，並做出合理的決策。
+
+請嚴格依照以下格式輸出：\n{format_instructions}\n'''
 
         # 調用LLM生成回應
         response_text = self.generate_response(prompt, system_message)
@@ -161,6 +221,14 @@ class LLMManager:
         except Exception as e:
             # 如果解析失敗，使用默認策略
             error_message = f"無法解析AI回應 ({type(e).__name__}: {e})"
+            # 若是 Pydantic ValidationError，印出詳細錯誤
+            try:
+                from pydantic import ValidationError
+                if isinstance(e, ValidationError):
+                    print("[詳細 ValidationError]")
+                    print(e.errors())
+            except ImportError:
+                pass
             logger.log_error(f"{error_message}. 原始回應: {response_text}")
             return {
                 "action": "play",
@@ -201,6 +269,12 @@ class LLMManager:
         # 添加輪內記錄
         if round_context:
             prompt += f"\n# 輪內記錄\n{round_context}\n"
+
+        # 根據手牌數量限制可選動作
+        if hand and len(hand) > 0:
+            prompt += "\n你本回合只能選擇：「出牌(play)」或「質疑(challenge)」。"
+        else:
+            prompt += "\n你本回合只能選擇：「跳過(skip)」或「質疑(challenge)」。"
 
         prompt += f"\n請基於以上信息，決定你的下一步行動。"
 
