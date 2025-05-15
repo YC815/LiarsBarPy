@@ -70,14 +70,14 @@ class LLMManager:
             )
 
             # 印出 LLM 的回應
-            print("\n=== LLM 回應 ===")
-            print(response.choices[0].message.content)
-            print("================\n")
+            # print("\n=== LLM 回應 ===")
+            # print(response.choices[0].message.content)
+            # print("================\n")
 
-            # 印出完整的 JSON 回應
-            print("\n=== LLM JSON 回應 ===")
-            print(json.dumps(response.model_dump(), indent=2, ensure_ascii=False))
-            print("===================\n")
+            # # 印出完整的 JSON 回應
+            # print("\n=== LLM JSON 回應 ===")
+            # print(json.dumps(response.model_dump(), indent=2, ensure_ascii=False))
+            # print("===================\n")
 
             return response.choices[0].message.content
         except Exception as e:

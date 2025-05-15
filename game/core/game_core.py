@@ -351,7 +351,7 @@ class Game:
 
         if self.last_player_idx is not None and self.last_play_cards and can_challenge:
             last_p = self.players[self.last_player_idx]
-            print(f"\n上家 p{last_p.id} 出了: {self.last_play_cards}")
+            # print(f"\n上家 p{last_p.id} 出了: {self.last_play_cards}")
 
             # 選擇出牌或質疑
             while True:
