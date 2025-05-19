@@ -41,7 +41,7 @@ class GameCLI:
         # 顯示上家出牌
         if self.game.last_player_idx is not None:
             print(
-                f"上家(玩家{self.game.last_player_idx})出牌: {self.game.last_play_cards}")
+                f"上家(玩家{self.game.last_player_idx})出牌: {len(self.game.last_play_cards)} 張")
         else:
             print("尚未有玩家出牌")
 
